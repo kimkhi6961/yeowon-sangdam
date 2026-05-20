@@ -1099,6 +1099,15 @@ function renderResult() {
     +'<div style="background:#f8f9fa;border:1px solid #e0e6ed;border-radius:10px;padding:16px;margin-bottom:14px;">'
     +'<div style="font-size:13px;font-weight:700;color:#555;margin-bottom:12px;">✏️ 예약 정보 수정</div>'
 
+    /* 문의유형 */
+    +'<div style="margin-bottom:12px;"><div style="font-size:11px;color:#888;margin-bottom:6px;">문의 유형</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">'
+    +['전화문의','네이버예약','홈페이지','매장방문','오늘의집','카카오톡','톡플러스'].map(function(t){
+      var sel=state.inquiryType===t;
+      return '<button onclick="editPickInquiry(\''+t+'\')" id="einq_'+t+'" style="padding:8px 4px;border:2px solid '+(sel?'#1a7fc4':'#dde3ea')+';border-radius:7px;background:'+(sel?'#1a7fc4':'white')+';color:'+(sel?'white':'#333')+';font-family:inherit;font-size:11px;cursor:pointer;">'+t+'</button>';
+    }).join("")
+    +'</div></div>'
+
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">'
     /* 아파트명 */
     +'<div><div style="font-size:11px;color:#888;margin-bottom:4px;">아파트명</div>'
@@ -1319,6 +1328,18 @@ function fallbackCopy(txt, cb){
   try{ document.execCommand("copy"); cb(); }
   catch(e){ alert("복사에 실패했습니다. 메시지를 직접 드래그해서 복사해 주세요."); }
   document.body.removeChild(ta);
+}
+
+function editPickInquiry(t){
+  state.inquiryType=t;
+  ['전화문의','네이버예약','홈페이지','매장방문','오늘의집','카카오톡','톡플러스'].forEach(function(n){
+    var b=document.getElementById("einq_"+n);
+    if(!b) return;
+    var sel=n===t;
+    b.style.borderColor=sel?'#1a7fc4':'#dde3ea';
+    b.style.background=sel?'#1a7fc4':'white';
+    b.style.color=sel?'white':'#333';
+  });
 }
 
 function editPickRegion(r){
