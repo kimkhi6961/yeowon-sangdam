@@ -1,0 +1,1400 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>예원디자인 전화상담 시스템</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
+    background: #f0f2f5;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* 상단 헤더 */
+  .top-bar {
+    background: #1a3a5c;
+    color: white;
+    padding: 14px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+  }
+  .top-bar h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; }
+  .top-bar .sub { font-size: 12px; color: #a0c4e8; margin-top: 2px; }
+  .top-bar .reset-top {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: white;
+    padding: 7px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-family: inherit;
+  }
+  .top-bar .reset-top:hover { background: rgba(255,255,255,0.25); }
+
+  /* 본문 레이아웃 */
+  .main-layout {
+    display: flex;
+    flex: 1;
+    gap: 0;
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 24px 20px;
+    gap: 20px;
+  }
+
+  /* 왼쪽: 질문 패널 */
+  .left-panel {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* 오른쪽: 견적 + 결과 패널 */
+  .right-panel {
+    width: 360px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* 진행 표시 */
+  .progress-wrap {
+    background: white;
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  .progress-label {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .progress-bar {
+    height: 6px;
+    background: #e0e6ed;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #1a7fc4, #2ea8f0);
+    border-radius: 3px;
+    transition: width 0.4s ease;
+  }
+
+  /* 카드 공통 */
+  .card {
+    background: white;
+    border-radius: 12px;
+    padding: 22px 24px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    margin-bottom: 16px;
+  }
+
+  .step-badge {
+    display: inline-block;
+    background: #e8f2fb;
+    color: #1a7fc4;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+    margin-bottom: 10px;
+  }
+
+  .step-question {
+    font-size: 17px;
+    font-weight: 700;
+    color: #1a2a3a;
+    line-height: 1.5;
+    margin-bottom: 8px;
+    white-space: pre-line;
+  }
+
+  .step-hint {
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 14px;
+    padding: 6px 10px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border-left: 3px solid #cde0f5;
+  }
+
+  /* 선택 버튼 */
+  .choice-grid {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .choice-btn {
+    padding: 12px 16px;
+    border: 2px solid #dde3ea;
+    border-radius: 8px;
+    background: #fafbfc;
+    color: #333;
+    font-size: 15px;
+    font-family: inherit;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+  }
+  .choice-btn:hover { border-color: #1a7fc4; background: #f0f7ff; color: #1a7fc4; }
+  .choice-btn.selected { border-color: #1a7fc4; background: #1a7fc4; color: white; font-weight: 700; }
+
+  /* 체크박스 */
+  .cb-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+  .cb-item {
+    display: flex; align-items: center; gap: 9px;
+    padding: 10px 12px;
+    border: 2px solid #dde3ea;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #333;
+    transition: all 0.15s;
+    user-select: none;
+    background: #fafbfc;
+  }
+  .cb-item:hover { border-color: #1a7fc4; background: #f0f7ff; }
+  .cb-item.checked { border-color: #16a34a; background: #16a34a; color: white; font-weight: 700; }
+  .cb-item input { display: none; }
+
+  /* 텍스트 입력 */
+  .text-input {
+    width: 100%;
+    padding: 12px 14px;
+    font-size: 15px;
+    font-family: inherit;
+    border: 2px solid #dde3ea;
+    border-radius: 8px;
+    outline: none;
+    transition: border 0.15s;
+    margin-bottom: 4px;
+    color: #1a2a3a;
+  }
+  .text-input:focus { border-color: #1a7fc4; }
+
+  /* 날짜/시간 */
+  .datetime-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 4px; }
+  .datetime-row input {
+    padding: 12px 14px;
+    font-size: 14px;
+    font-family: inherit;
+    border: 2px solid #dde3ea;
+    border-radius: 8px;
+    outline: none;
+    color: #1a2a3a;
+  }
+  .datetime-row input:focus { border-color: #1a7fc4; }
+
+  /* 네비게이션 버튼 */
+  .nav-row { display: flex; gap: 10px; margin-top: 18px; }
+  .btn-back {
+    padding: 11px 20px;
+    border: 2px solid #dde3ea;
+    border-radius: 8px;
+    background: white;
+    color: #666;
+    font-size: 14px;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .btn-back:hover { background: #f0f2f5; }
+  .btn-next {
+    flex: 1;
+    padding: 12px;
+    background: #1a7fc4;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn-next:hover { background: #1568a3; }
+  .btn-next.green { background: #16a34a; }
+  .btn-next.green:hover { background: #15803d; }
+
+  /* 인포 박스 (인사말) */
+  .info-box {
+    background: linear-gradient(135deg, #1a3a5c 0%, #1a7fc4 100%);
+    color: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 16px;
+    text-align: center;
+  }
+  .info-box .ico { font-size: 36px; margin-bottom: 8px; }
+  .info-box p { font-size: 14px; line-height: 1.7; opacity: 0.9; }
+
+  /* ── 오른쪽 견적 카드 ── */
+  .est-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    border-top: 4px solid #16a34a;
+  }
+  .est-card h3 {
+    font-size: 13px;
+    color: #16a34a;
+    font-weight: 700;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .est-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    color: #444;
+    padding: 6px 0;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .est-row .label { color: #666; }
+  .est-total {
+    display: flex;
+    justify-content: space-between;
+    font-size: 18px;
+    font-weight: 700;
+    color: #16a34a;
+    padding-top: 12px;
+    margin-top: 4px;
+  }
+  .est-note { font-size: 11px; color: #999; margin-top: 8px; }
+
+  /* 요약 카드 */
+  .summary-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    border-top: 4px solid #1a7fc4;
+  }
+  .summary-card h3 { font-size: 13px; color: #1a7fc4; font-weight: 700; margin-bottom: 12px; }
+  .summary-row { font-size: 13px; color: #333; padding: 4px 0; line-height: 1.6; }
+  .summary-row span { color: #888; display: inline-block; width: 60px; font-size: 12px; }
+
+  /* 결과 출력 영역 */
+  .result-section {
+    background: white;
+    border-radius: 12px;
+    padding: 22px 24px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  .result-section h3 { font-size: 14px; font-weight: 700; color: #333; margin-bottom: 12px; }
+
+  .msg-box {
+    background: #f8f9fa;
+    border: 1px solid #e0e6ed;
+    border-radius: 8px;
+    padding: 14px;
+    font-size: 13px;
+    color: #333;
+    line-height: 1.8;
+    white-space: pre-wrap;
+    font-family: 'Consolas', monospace;
+    max-height: 280px;
+    overflow-y: auto;
+  }
+
+  .action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    margin-top: 10px;
+    text-decoration: none;
+    transition: all 0.15s;
+    border: none;
+  }
+  .action-btn.blue { background: #1a7fc4; color: white; }
+  .action-btn.blue:hover { background: #1568a3; }
+  .action-btn.green { background: #16a34a; color: white; }
+  .action-btn.green:hover { background: #15803d; }
+  .action-btn.outline {
+    background: white;
+    color: #555;
+    border: 2px solid #dde3ea;
+  }
+  .action-btn.outline:hover { background: #f0f2f5; }
+  .action-btn.copied { background: #16a34a !important; }
+
+  /* 완료 화면 */
+  .done-banner {
+    text-align: center;
+    padding: 30px 20px;
+  }
+  .done-banner .ico { font-size: 52px; margin-bottom: 12px; }
+  .done-banner h2 { font-size: 22px; font-weight: 700; color: #1a2a3a; margin-bottom: 8px; }
+  .done-banner p { font-size: 14px; color: #666; line-height: 1.6; }
+
+  .loc-alert {
+    background: #fff8e1;
+    border: 1px solid #fbbf24;
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 13px;
+    color: #92400e;
+    margin-bottom: 12px;
+    line-height: 1.7;
+  }
+
+  /* 반응형 */
+  @media (max-width: 860px) {
+    .main-layout { flex-direction: column; padding: 16px 12px; }
+    .right-panel { width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="font-size:22px;">🏠</span>
+      <div>
+        <h1>예원디자인 전화상담 시스템</h1>
+        <div class="sub">1→2→3→4→견적확인→5→6→(예약시) 성함·연락처→7→8→9</div>
+      </div>
+    </div>
+  </div>
+  <button class="reset-top" onclick="resetAll()">🔄 새 상담 시작</button>
+</div>
+
+<div class="main-layout">
+  <!-- 왼쪽: 질문 영역 -->
+  <div class="left-panel">
+    <div class="progress-wrap">
+      <div class="progress-label">
+        <span id="progText">1단계 진행 중</span>
+        <span id="progNum">1 / 1</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progFill" style="width:0%"></div>
+      </div>
+    </div>
+    <div id="stepArea"></div>
+  </div>
+
+  <!-- 오른쪽: 견적 + 요약 -->
+  <div class="right-panel">
+    <div class="est-card" id="estCard">
+      <h3>💰 예상 견적</h3>
+      <div style="font-size:13px;color:#999;text-align:center;padding:20px 0;">
+        공사 항목을 입력하면<br>자동으로 계산됩니다
+      </div>
+    </div>
+    <div class="summary-card" id="summaryCard">
+      <h3>📋 입력 현황</h3>
+      <div id="summaryBody" style="font-size:13px;color:#999;">아직 입력된 정보가 없습니다.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+var state = {};
+var stepIdx = 0;
+
+var STEPS = [
+  { id:"s1",  label:"1단계", q:"안녕하세요 예원디자인입니다.\n고객 전화를 받고 상담을 시작합니다.", type:"info" },
+  { id:"s1b", label:"1단계", q:"문의 유형을 선택해 주세요.", type:"choice", key:"inquiryType", cols:3, opts:["전화문의","네이버예약","홈페이지","매장방문","오늘의집","카카오톡","톡플러스"] },
+  { id:"s2",  label:"2단계", q:"공사하실 곳이 어디이신가요?", type:"choice", key:"place", cols:2, opts:["아파트","주택/빌라"], hint:"아파트 → 아파트명 확인 / 주택·빌라 → 주소 확인" },
+  { id:"s2_city", label:"2단계", q:"어느 지역 아파트이신가요?", type:"choice", key:"city", cols:2, opts:["안양","안산"], cond:function(s){return s.place==="아파트";} },
+  { id:"s2_apt", label:"2단계", q:"아파트를 선택하거나 직접 입력해 주세요.", type:"aptselect", key:"address", cond:function(s){return s.place==="아파트"&&s.city;} },
+  { id:"s2b", label:"2단계", q:"주소를 알려주세요.", type:"text", key:"address", placeholder:"예) 안산시 단원구 OO동 OO번지", cond:function(s){return s.place==="주택/빌라";} },
+  { id:"s3",  label:"3단계", q:"몇 평이신가요?", type:"text", key:"size", placeholder:"예) 32", hint:"33평 기준으로 평단가가 달라집니다." },
+  { id:"s3b", label:"3단계", q:"공사 시작일은 언제로 생각하고 계신가요?", type:"workstart", key:"workStart", hint:"대략적인 시기도 괜찮습니다. 예) 6월 초, 7월 중순, 빠를수록 좋다 등" },
+  { id:"s4a", label:"4단계", q:"공사하실 내용은 올공사 하시나요,\n부분공사 하시나요?", type:"choice", key:"workType", cols:2, opts:["올공사","부분공사"] },
+  { id:"s4b", label:"4단계", q:"부분공사 내용을 확인해 주세요.\n어느 부분 공사를 원하시나요?", type:"text", key:"partialDetail", placeholder:"예) 화장실, 주방 타일 등", cond:function(s){return s.workType==="부분공사";} },
+  { id:"s4c", label:"4단계", q:"샷시(창문) 공사도 함께 진행하시나요?", type:"choice", key:"sash", cols:2, opts:["샷시 진행","샷시 미진행"], cond:function(s){return s.workType==="올공사";} },
+  { id:"s4d", label:"4단계", q:"확장 공사를 진행하시나요?\n해당하는 항목을 모두 선택해 주세요.", type:"checkbox", key:"expansion", opts:["거실확장+터닝도어","작은방1개","작은방2개","주방+터닝도어","확장 없음"], cond:function(s){return s.workType==="올공사";} },
+  { id:"s4e", label:"4단계", q:"시스템에어컨 설치도 하시나요?", type:"choice", key:"aircon", cols:2, opts:["시스템에어컨 포함","해당 없음"], cond:function(s){return s.workType==="올공사";} },
+  { id:"s4f", label:"4단계", q:"시스템에어컨 몇 대 설치하시나요?\n(단내림 별도)", type:"airconselect", key:"airconCnt", cond:function(s){return s.workType==="올공사"&&s.aircon==="시스템에어컨 포함";} },
+  { id:"s4g", label:"4단계", q:"방통(보일러배관) 공사도 함께 하시나요?", type:"choice", key:"heating", cols:2, opts:["방통 포함","해당 없음"], cond:function(s){return s.workType==="올공사";} },
+  { id:"s_est", label:"예상 견적 확인", q:"", type:"estimate" },
+  { id:"s5",  label:"5단계", q:"그러시면 매장 상담 진행이 가능하실까요?", type:"choice", key:"canVisit", cols:2, opts:["가능합니다","어렵습니다"] },
+  { id:"s6",  label:"6단계", q:"예약을 잡아 드릴까요?", type:"choice", key:"wantBook", cols:2, opts:["예약할게요","다음에 할게요"], hint:"캘린더 일정 확인 후 진행 / 당일 예약은 팀장들 확인 후 진행" },
+  { id:"s6b", label:"고객 정보", q:"연락처를 알려주세요.", type:"tel", key:"phone", placeholder:"010-0000-0000", cond:function(s){return s.wantBook==="예약할게요";} },
+  { id:"s7",  label:"7단계", q:"혹시 저희 매장 위치가 어디인지 알고 계신지요?", type:"choice", key:"knowLoc", cols:2, opts:["알고 있어요","모르겠어요"], cond:function(s){return s.wantBook==="예약할게요";} },
+  { id:"s8",  label:"8단계", q:"몇 일, 무슨 요일, 몇 시로 예약 잡아드릴까요?", type:"datetime", key:"dt", hint:"날짜와 시간을 선택하면 요일이 자동으로 표시됩니다.", cond:function(s){return s.wantBook==="예약할게요";} },
+  { id:"s8b", label:"8단계", q:"담당 팀장을 배정해 주세요.", type:"choice", key:"manager", cols:3, opts:["김홍내","김재웅","이성찬","정길용","배정미정"], cond:function(s){return s.wantBook==="예약할게요";} },
+  { id:"s8c", label:"8단계", q:"고객 지역을 선택해 주세요.", type:"choice", key:"region", cols:3, opts:["안산","안양","군포","산본","과천","화성","의왕","시흥","기타"], cond:function(s){return s.wantBook==="예약할게요";} }
+];
+
+function getActive() {
+  return STEPS.filter(function(s){ return !s.cond || s.cond(state); });
+}
+
+/* ── 아파트 데이터 ── */
+var APT_DATA = {
+  "안양": {
+    "전체": [
+      "공작부영","관악타운","꿈마을 건영3단지","꿈마을 건영5단지","꿈마을 금호","꿈마을 동아","꿈마을 우성","꿈마을 현대",
+      "더 포레스트 힐","동편마을 1단지","동편마을 2단지","동편마을 3단지","동편마을 4단지",
+      "래미안 안양 메가트리아","목련마을","박달 대림한숲","박달 우성","박달 한라비발디",
+      "비산삼성래미안","샘마을 대우한양",
+      "샛별한양 1단지","샛별한양 2단지","샛별한양 3단지","샛별한양 4단지","샛별한양 5단지","샛별한양 6단지",
+      "석수 LG빌리지","석수 e편한세상","석수 아이파크","석수 현대",
+      "안양 삼성래미안","안양 어반포레 자연앤 e편한세상","안양씨엘포레자이","안양역 푸르지오 더샵",
+      "은하수한양","인덕원 대림","인덕원마을 삼성",
+      "주공뜨란채","초원마을 대림2단지","초원마을 부영7단지","초원마을 성원1단지","초원마을 세경","초원마을 향촌현대",
+      "평촌 더샵 센트럴시티","평촌 래미안 푸르지오","평촌 센텀퍼스트","평촌 어바인 퍼스트","평촌 엘프라우드","평촌 트리지아","평촌자이아이파크",
+      "푸른마을 인덕원대우","한가람두산","한가람세경","한가람신라","한신휴플러스","호계 e편한세상","호계 현대홈타운"
+    ]
+  },
+  "안산": {
+    "전체": [
+      "건건동 e편한세상","고잔 푸르지오 1차","고잔 푸르지오 2차","고잔 푸르지오 3차","고잔 푸르지오 4차","고잔 푸르지오 5차",
+      "고잔그린빌 7단지","고잔그린빌 8단지","고잔그린빌 9단지","고잔네오빌6단지",
+      "그랑시티자이 1차","그랑시티자이 2차","그린빌11단지","그린빌12단지",
+      "군자주공 11단지","군자주공 12단지","군자주공 13단지","군자주공 14단지",
+      "반월역 두산위브","본오주공1단지","본오주공2단지",
+      "사동 푸르지오 6차","사동 푸르지오 7차","사동 푸르지오 8차","사동 푸르지오 9차","사동 현대아파트",
+      "선부동 공작한양","센트럴푸르지오","성포동 한양아파트","성포예술인아파트","성포주공11단지",
+      "신길지구 아이파크","신안1차","안산라프리모","안산레이크타운푸르지오","안산메트로타운푸르지오힐스테이트","안산푸르지오브리파크",
+      "월드아파트","e편한세상선부광장",
+      "초지두산위브","초지역메이저타운푸르지오 메트로단지","초지역메이저타운푸르지오 에코단지","초지역메이저타운푸르지오 파크단지",
+      "초지역센트럴엘리프","행복한마을서해그랑블","한양아파트 1차","한양아파트 2차","한양아파트 3차","한양아파트 4차",
+      "한화꿈에그린 알파인","현대1차","힐스테이트중앙"
+    ]
+  }
+};
+
+function buildAptSelectHTML(s, sn, total) {
+  var city=state.city||"";
+  /* 안양, 안산 모두 전체 목록 사용 */
+  var list=(APT_DATA[city]&&APT_DATA[city]["전체"])||[];
+  var current=state.address||"";
+  var areaLabel = city+" 전체";
+
+  /* 가나다 순 정렬 */
+  var sorted=list.slice().sort(function(a,b){ return a.localeCompare(b,'ko'); });
+
+  var aptBtns='<div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px;">';
+  sorted.forEach(function(apt){
+    var sel=current===apt;
+    aptBtns+='<button onclick="selectApt(\''+apt.replace(/'/g,"\\'")+'\')" style="'
+      +'padding:7px 12px;border:2px solid '+(sel?'#1a7fc4':'#dde3ea')+';border-radius:20px;'
+      +'background:'+(sel?'#1a7fc4':'#fafbfc')+';color:'+(sel?'white':'#333')+';'
+      +'font-size:13px;font-family:inherit;cursor:pointer;font-weight:'+(sel?'700':'400')+';'
+      +'transition:all 0.15s;">'+apt+'</button>';
+  });
+  aptBtns+='</div>';
+
+  var backBtn=stepIdx>0?'<button class="btn-back" onclick="goBack()">← 이전</button>':"";
+  return '<div class="card">'
+    +'<div class="step-badge">'+s.label+' ('+sn+'/'+total+')</div>'
+    +'<div class="step-question">아파트를 선택하거나 직접 입력해 주세요.</div>'
+    +'<div class="step-hint">💡 '+areaLabel+' 아파트 목록 — 버튼 선택 또는 아래에 직접 입력</div>'
+    +aptBtns
+    +'<input class="text-input" type="text" id="si" placeholder="목록에 없으면 직접 입력..." value="'+current+'" oninput="state.address=this.value;updateSummary();" />'
+    +'<div class="nav-row">'+backBtn+'<button class="btn-next" onclick="goNext()">다음 →</button></div>'
+    +'</div>';
+}
+
+function buildAirconSelectHTML(s, sn, total) {
+  var acPrices = [
+    { cnt:"2대", price:4600000 },
+    { cnt:"3대", price:5700000 },
+    { cnt:"4대", price:6900000 },
+    { cnt:"5대", price:9000000 }
+  ];
+  var cur = state.airconCnt||"";
+
+  /* 가격표 */
+  var table = '<div style="background:#f0f7ff;border:2px solid #bfdbfe;border-radius:10px;padding:14px 16px;margin-bottom:16px;">'
+    +'<div style="font-size:12px;font-weight:700;color:#1a7fc4;margin-bottom:10px;">📋 시스템에어컨 가격표 (단내림 별도)</div>'
+    +'<table style="width:100%;border-collapse:collapse;font-size:13px;">'
+    +'<thead><tr style="background:#dbeafe;">'
+    +'<th style="padding:7px 10px;text-align:center;border-radius:4px 0 0 4px;color:#1e40af;">대수</th>'
+    +'<th style="padding:7px 10px;text-align:right;color:#1e40af;">금액</th>'
+    +'<th style="padding:7px 10px;text-align:right;border-radius:0 4px 4px 0;color:#1e40af;">비고</th>'
+    +'</tr></thead><tbody>';
+  acPrices.forEach(function(row){
+    var highlight = cur===row.cnt;
+    var bg = highlight ? '#1a7fc4' : (acPrices.indexOf(row)%2===0?'#f8fbff':'white');
+    var color = highlight ? 'white' : '#333';
+    table += '<tr style="background:'+bg+';color:'+color+';">'
+      +'<td style="padding:7px 10px;text-align:center;font-weight:700;">'+row.cnt+'</td>'
+      +'<td style="padding:7px 10px;text-align:right;font-weight:'+(highlight?'700':'400')+';">'+row.price.toLocaleString("ko-KR")+'원</td>'
+      +'<td style="padding:7px 10px;text-align:right;font-size:11px;color:'+(highlight?'#cfe':'#999')+';">단내림 별도</td>'
+      +'</tr>';
+  });
+  table += '</tbody></table></div>';
+
+  /* 선택 버튼 (가격 괄호 포함) */
+  var btns = '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:8px;">';
+  acPrices.forEach(function(row){
+    var sel = cur===row.cnt;
+    btns += '<button onclick="pickAircon(\''+row.cnt+'\')" style="'
+      +'padding:12px 6px;border:2px solid '+(sel?'#1a7fc4':'#dde3ea')+';border-radius:8px;'
+      +'background:'+(sel?'#1a7fc4':'#fafbfc')+';color:'+(sel?'white':'#333')+';'
+      +'font-family:inherit;cursor:pointer;text-align:center;transition:all 0.15s;">'
+      +'<div style="font-size:16px;font-weight:700;">'+row.cnt+'</div>'
+      +'<div style="font-size:11px;margin-top:3px;opacity:0.85;">'+(row.price/10000).toLocaleString("ko-KR")+'만원</div>'
+      +'</button>';
+  });
+  btns += '</div>';
+
+  var backBtn = stepIdx>0?'<button class="btn-back" onclick="goBack()">← 이전</button>':"";
+  return '<div class="card">'
+    +'<div class="step-badge">4단계 ('+sn+'/'+total+')</div>'
+    +'<div class="step-question">시스템에어컨 몇 대 설치하시나요?</div>'
+    +'<div class="step-hint">💡 단내림(천장 매립형 틀) 공사비는 별도입니다.</div>'
+    +table
+    +btns
+    +'<div class="nav-row">'+backBtn+'<button class="btn-next" onclick="goNext()">다음 →</button></div>'
+    +'</div>';
+}
+
+function pickAircon(cnt) {
+  state.airconCnt=cnt;
+  updateEstCard();
+  updateSummary();
+  /* 버튼 UI 갱신 */
+  var acPrices=[{cnt:"2대",price:4600000},{cnt:"3대",price:5700000},{cnt:"4대",price:6900000},{cnt:"5대",price:9000000}];
+  var btns=document.querySelectorAll("#stepArea button[onclick^='pickAircon']");
+  btns.forEach(function(b, i){
+    var row=acPrices[i];
+    var sel=row&&row.cnt===cnt;
+    b.style.borderColor=sel?'#1a7fc4':'#dde3ea';
+    b.style.background=sel?'#1a7fc4':'#fafbfc';
+    b.style.color=sel?'white':'#333';
+  });
+  /* 가격표 행 강조 갱신 */
+  var rows=document.querySelectorAll("#stepArea table tbody tr");
+  acPrices.forEach(function(row, i){
+    if(!rows[i]) return;
+    var sel=row.cnt===cnt;
+    rows[i].style.background=sel?'#1a7fc4':(i%2===0?'#f8fbff':'white');
+    rows[i].style.color=sel?'white':'#333';
+    rows[i].querySelectorAll('td').forEach(function(td,j){
+      if(j===2) td.style.color=sel?'#cfe':'#999';
+    });
+  });
+}
+
+function selectApt(name) {
+  state.address=name;
+  updateSummary();
+  /* 버튼 색상 갱신 */
+  var si=document.getElementById("si");
+  if(si) si.value=name;
+  var btns=document.querySelectorAll("#stepArea button[onclick^='selectApt']");
+  btns.forEach(function(b){
+    var sel=b.textContent===name;
+    b.style.borderColor=sel?'#1a7fc4':'#dde3ea';
+    b.style.background=sel?'#1a7fc4':'#fafbfc';
+    b.style.color=sel?'white':'#333';
+    b.style.fontWeight=sel?'700':'400';
+  });
+}
+
+function getDayOfWeek(dtStr) {
+  if(!dtStr) return "";
+  var days=["일","월","화","수","목","금","토"];
+  var d=new Date(dtStr.split("T")[0]);
+  return days[d.getDay()]+"요일";
+}
+
+function formatDt(dt) {
+  if(!dt) return "미정";
+  var parts=dt.split("T");
+  var day=getDayOfWeek(dt);
+  return parts[0]+" ("+day+") "+parts[1];
+}
+
+function fmt(n) { return n.toLocaleString("ko-KR")+"원"; }
+
+function calcEst() {
+  var sz=parseInt(state.size)||0, big=sz>=33;
+  var baseCost=0, baseLabel="";
+  if(state.workType==="올공사"){
+    var rate = state.sash==="샷시 진행" ? (big?1700000:1750000) : (big?1300000:1350000);
+    baseCost=rate*sz;
+    baseLabel="올공사"+(state.sash==="샷시 진행"?"+샷시":"")+"("+(big?"33평이상":"33평미만")+") "+sz+"평";
+  }
+  var expMap={"거실확장+터닝도어":{y:3500000,n:6000000},"작은방1개":{y:2500000,n:4500000},"작은방2개":{y:4000000,n:8500000},"주방+터닝도어":{y:3000000,n:5500000}};
+  var expItems=(state.expansion||[]).filter(function(x){return x!=="확장 없음";});
+  var expCost=0;
+  expItems.forEach(function(e){if(expMap[e])expCost+=state.sash==="샷시 진행"?expMap[e].y:expMap[e].n;});
+  var acMap={"2대":4600000,"3대":5700000,"4대":6900000,"5대":9000000};
+  var acCost=state.aircon==="시스템에어컨 포함"?(acMap[state.airconCnt]||0):0;
+  var htCost=state.heating==="방통 포함"?370000*sz:0;
+  return {sz:sz,baseCost:baseCost,baseLabel:baseLabel,expCost:expCost,expItems:expItems,acCost:acCost,htCost:htCost,total:baseCost+expCost+acCost+htCost};
+}
+
+function updateEstCard() {
+  var ec=document.getElementById("estCard");
+  if(!ec) return;
+  if(state.workType==="부분공사"){
+    ec.innerHTML='<h3>💰 예상 견적</h3><div style="font-size:13px;color:#666;line-height:1.7;padding:10px 0;">부분공사는 현장 실측 후<br>정확한 금액을 안내드립니다.</div>';
+    return;
+  }
+  if(!state.workType){
+    ec.innerHTML='<h3>💰 예상 견적</h3><div style="font-size:13px;color:#999;text-align:center;padding:20px 0;">공사 항목을 입력하면<br>자동으로 계산됩니다</div>';
+    return;
+  }
+  var e=calcEst();
+  var rows="";
+  if(e.baseCost>0) rows+='<div class="est-row"><span class="label">'+e.baseLabel+'</span><span>'+fmt(e.baseCost)+'</span></div>';
+  if(e.expCost>0)  rows+='<div class="est-row"><span class="label">확장('+e.expItems.join(",")+') </span><span>'+fmt(e.expCost)+'</span></div>';
+  if(e.acCost>0)   rows+='<div class="est-row"><span class="label">에어컨 '+state.airconCnt+'</span><span>'+fmt(e.acCost)+'</span></div>';
+  if(e.htCost>0)   rows+='<div class="est-row"><span class="label">방통 '+e.sz+'평</span><span>'+fmt(e.htCost)+'</span></div>';
+  ec.innerHTML='<h3>💰 고객 안내 예상 견적</h3>'
+    +(rows||'<div style="font-size:13px;color:#999;padding:8px 0;">항목을 선택해 주세요</div>')
+    +(e.total>0?'<div class="est-total"><span>합계</span><span>'+fmt(e.total)+'</span></div>':"")
+    +'<div class="est-note">※ 현장 실측 후 정확한 금액 확정</div>';
+}
+
+function updateDayLabel() {
+  var di=document.getElementById("di"), ti=document.getElementById("ti"), lbl=document.getElementById("dayLabel");
+  if(di&&lbl){
+    var dv=di.value, tv=ti?ti.value:"10:00";
+    var day=getDayOfWeek(dv+"T"+tv);
+    lbl.textContent="📅 "+dv+" ("+day+") "+tv;
+  }
+}
+
+function updateSummary() {
+  var sb=document.getElementById("summaryBody");
+  if(!sb) return;
+  var lines=[];
+  if(state.place) lines.push('<div class="summary-row"><span>위치</span>'+state.place+(state.address?" / "+state.address:"")+'</div>');
+  if(state.size) lines.push('<div class="summary-row"><span>평수</span>'+state.size+'평</div>');
+  if(state.workStart) lines.push('<div class="summary-row"><span>공사시작</span>'+state.workStart+'</div>');
+  if(state.workType) lines.push('<div class="summary-row"><span>공사</span>'+state.workType+(state.sash?" / "+state.sash:"")+'</div>');
+  if(state.phone) lines.push('<div class="summary-row"><span>연락처</span>'+state.phone+'</div>');
+  if(state.manager) lines.push('<div class="summary-row"><span>담당</span>'+state.manager+'</div>');
+  if(state.region) lines.push('<div class="summary-row"><span>지역</span>'+state.region+'</div>');
+  if(state.dt) lines.push('<div class="summary-row"><span>예약</span>'+formatDt(state.dt)+'</div>');
+  sb.innerHTML = lines.length ? lines.join("") : '<div style="font-size:13px;color:#999;">아직 입력된 정보가 없습니다.</div>';
+}
+
+function updateProgress() {
+  var steps=getActive(), total=steps.length, cur=Math.min(stepIdx,total);
+  var pct=total>0?Math.round((cur/total)*100):0;
+  var fill=document.getElementById("progFill");
+  var ptxt=document.getElementById("progText");
+  var pnum=document.getElementById("progNum");
+  if(fill) fill.style.width=pct+"%";
+  if(pnum) pnum.textContent=cur+" / "+total;
+  if(ptxt && cur<total) ptxt.textContent=steps[cur]?steps[cur].label+" 진행 중":"완료";
+  else if(ptxt) ptxt.textContent="상담 완료";
+}
+
+function makeKakaoMsg() {
+  var e=calcEst();
+  var expList=(state.expansion||[]).filter(function(x){return x!=="확장 없음";});
+  var dtStr=formatDt(state.dt);
+  var locNote=state.knowLoc==="모르겠어요"?"\n📍 위치안내: 평촌점 – 귀인중학교 근처\n            안산점 – 한대앞역 큰길":"";
+  var estStr=state.workType==="부분공사"?"현장 확인 후 안내":(e.total>0?fmt(e.total):"-");
+  var managerStr=state.manager==="배정미정"?"배정미정 (추후 확정)":(state.manager||"-");
+  var clientLabel=(state.region?state.region+" ":"")+(state.address||"-");
+  var inquiryLabel="[" + (state.inquiryType||"문의") + "]";
+  var workDetail=(state.workType||"-")+(state.sash?" / "+state.sash:"")+(state.workType==="부분공사"&&state.partialDetail?" / "+state.partialDetail:"");
+  return inquiryLabel+" "+managerStr+"\n"
+    +clientLabel+" "+(state.size||"-")+"평\n"
+    +(state.place==="아파트"?"":(state.address||"-")+"\n")
+    +"\n"
+    +(state.phone||"-")+"\n"
+    +dtStr+" 상담요청\n"
+    +(state.workStart?"🔨 공사시작 희망: "+state.workStart+"\n":"")
+    +"공사: "+workDetail+"\n"
+    +(expList.length?"확장: "+expList.join(", ")+"\n":"")
+    +(state.aircon==="시스템에어컨 포함"?"에어컨: "+state.airconCnt+"\n":"")
+    +(state.heating==="방통 포함"?"방통: 포함\n":"")
+    +locNote;
+}
+
+/* ── 구글 시트 연동 ── */
+var SHEETS_URL = "https://script.google.com/macros/s/AKfycbw6M25Pun4CBA3zkK0EddkdQn_Cou_qWoWAJuoUeiowB5BnTDaKbDIJI3CFAAHBydH2QA/exec";
+
+function saveToSheets() {
+  var btn = document.getElementById("sheetSaveBtn");
+  if(btn){ btn.textContent="⏳ 저장 중..."; btn.disabled=true; btn.style.opacity="0.7"; }
+
+  var data = {
+    inquiryType: state.inquiryType||"",
+    city: state.city||"",
+    gu: state.gu||"",
+    place: state.place||"",
+    address: state.address||"",
+    size: state.size||"",
+    phone: state.phone||"",
+    workType: state.workType||"",
+    sash: state.sash||"",
+    expansion: state.expansion||[],
+    aircon: state.aircon||"",
+    airconCnt: state.airconCnt||"",
+    heating: state.heating||"",
+    partialDetail: state.partialDetail||"",
+    workStart: state.workStart||"",
+    dt: state.dt||"",
+    manager: state.manager||"",
+    region: state.region||state.city||""
+  };
+
+  /* GET 방식으로 전송 (CORS 우회) */
+  var params = encodeURIComponent(JSON.stringify(data));
+  var url = SHEETS_URL + "?data=" + params;
+
+  var img = new Image();
+  img.onload = img.onerror = function(){
+    if(btn){
+      btn.textContent="✅ 시트 저장 완료!";
+      btn.style.background="#16a34a";
+      btn.style.color="white";
+      btn.style.opacity="1";
+      btn.disabled=false;
+    }
+  };
+  img.src = url;
+}
+var GAPI_KEY = "AIzaSyCMPNwDLIVvEBERr1x4UkiCY1tIyiShwFc";
+var CAL_ANSAN  = "o15ipm2qnfuc2rcu1tf519f9to@group.calendar.google.com"; /* 예원안산매장상담 노란색 */
+var CAL_ANYANG = "aou59daucbmkv9berdn1lkh770@group.calendar.google.com"; /* 평촌매장상담 보라색 */
+/* 구글 캘린더 색상 ID: 노란색=5(banana), 보라색=3(grape) */
+var COLOR_ANSAN  = "5"; /* banana = 노란색 */
+var COLOR_ANYANG = "3"; /* grape  = 보라색 */
+
+function getCalendarId() {
+  return state.city==="안산" ? CAL_ANSAN : CAL_ANYANG;
+}
+function getColorId() {
+  return state.city==="안산" ? COLOR_ANSAN : COLOR_ANYANG;
+}
+
+function makeEventTitle() {
+  var clientLabel=state.address||"고객";
+  var managerStr=state.manager==="배정미정"?"배정미정":(state.manager||"-");
+  var expItems=(state.expansion||[]).filter(function(x){return x!=="확장 없음";});
+  var workSummary=state.workType||"";
+  if(state.sash==="샷시 진행") workSummary+="/샷시";
+  if(expItems.length) workSummary+="/확장("+expItems.join("·")+")";
+  if(state.aircon==="시스템에어컨 포함"&&state.airconCnt) workSummary+="/에어컨"+state.airconCnt;
+  if(state.heating==="방통 포함") workSummary+="/방통";
+  return managerStr+" "+(state.phone||"")+" "+clientLabel+" "+(state.size||"")+"평 "+workSummary;
+}
+
+function makeEventBody() {
+  var clientLabel=state.address||"고객";
+  var managerStr=state.manager==="배정미정"?"배정미정":(state.manager||"-");
+  var expItems=(state.expansion||[]).filter(function(x){return x!=="확장 없음";});
+  var workSummary=state.workType||"";
+  if(state.sash==="샷시 진행") workSummary+="/샷시";
+  if(expItems.length) workSummary+="/확장("+expItems.join("·")+")";
+  if(state.aircon==="시스템에어컨 포함"&&state.airconCnt) workSummary+="/에어컨"+state.airconCnt;
+  if(state.heating==="방통 포함") workSummary+="/방통";
+  return "📞 "+(state.phone||"-")+"\n🏠 "+clientLabel+" ("+(state.size||"-")+"평)\n👔 담당: "+managerStr+"\n🔧 공사: "+workSummary+(state.workStart?"\n🗓 공사시작: "+state.workStart:"");
+}
+
+function makeDateTime(dtStr, addHour) {
+  if(!dtStr) return null;
+  var parts=dtStr.split("T"), dp=parts[0], tp=parts[1]||"10:00";
+  var hm=tp.split(":");
+  var h=parseInt(hm[0])+(addHour?1:0);
+  var hStr=String(h).padStart(2,"0");
+  return dp+"T"+hStr+":"+hm[1]+":00";
+}
+
+function saveToGoogleCalendar() {
+  var btn=document.getElementById("calSaveBtn");
+  if(!btn) return;
+  if(!state.dt){ alert("예약 날짜를 먼저 선택해 주세요."); return; }
+
+  btn.textContent="⏳ 저장 중...";
+  btn.style.opacity="0.7";
+  btn.disabled=true;
+
+  var calId=getCalendarId();
+  var colorId=getColorId();
+  var event={
+    summary: makeEventTitle(),
+    description: makeEventBody(),
+    start:{ dateTime: makeDateTime(state.dt, false), timeZone:"Asia/Seoul" },
+    end:  { dateTime: makeDateTime(state.dt, true),  timeZone:"Asia/Seoul" },
+    colorId: colorId
+  };
+
+  var url="https://www.googleapis.com/calendar/v3/calendars/"+encodeURIComponent(calId)+"/events?key="+GAPI_KEY;
+
+  /* API 키만으로는 쓰기 불가 → OAuth 토큰 필요 안내 */
+  /* 우선 GIS(Google Identity Services)로 토큰 발급 후 저장 */
+  if(window._gapiToken){
+    postEvent(url, event, btn);
+  } else {
+    requestGoogleAuth(function(token){
+      window._gapiToken=token;
+      postEvent(url, event, btn);
+    }, btn);
+  }
+}
+
+function postEvent(url, event, btn) {
+  fetch(url, {
+    method:"POST",
+    headers:{
+      "Authorization":"Bearer "+window._gapiToken,
+      "Content-Type":"application/json"
+    },
+    body: JSON.stringify(event)
+  })
+  .then(function(res){ return res.json(); })
+  .then(function(data){
+    if(data.id){
+      btn.textContent="✅ 캘린더 저장 완료!";
+      btn.style.background="#16a34a";
+      btn.style.opacity="1";
+      btn.disabled=false;
+      /* 저장된 이벤트 링크 표시 */
+      var linkDiv=document.getElementById("calEventLink");
+      if(linkDiv && data.htmlLink){
+        linkDiv.innerHTML='<a href="'+data.htmlLink+'" target="_blank" style="font-size:12px;color:#1a7fc4;">📅 저장된 일정 보기</a>';
+      }
+    } else if(data.error){
+      /* 토큰 만료 시 재시도 */
+      if(data.error.code===401){
+        window._gapiToken=null;
+        btn.disabled=false; btn.style.opacity="1";
+        btn.textContent="📅 구글 캘린더에 저장";
+        alert("로그인이 만료됐어요. 다시 눌러주세요.");
+      } else {
+        btn.textContent="❌ 저장 실패 - 다시 시도";
+        btn.style.opacity="1"; btn.disabled=false;
+        alert("오류: "+data.error.message);
+      }
+    }
+  })
+  .catch(function(err){
+    btn.textContent="❌ 저장 실패 - 다시 시도";
+    btn.style.opacity="1"; btn.disabled=false;
+    alert("네트워크 오류: "+err.message);
+  });
+}
+
+function requestGoogleAuth(callback, btn) {
+  /* Google Identity Services 로드 */
+  if(!window.google || !window.google.accounts){
+    var script=document.createElement("script");
+    script.src="https://accounts.google.com/gsi/client";
+    script.onload=function(){ doAuth(callback, btn); };
+    script.onerror=function(){
+      btn.textContent="📅 구글 캘린더에 저장";
+      btn.style.opacity="1"; btn.disabled=false;
+      alert("구글 인증 라이브러리 로드 실패.\n인터넷 연결을 확인해 주세요.");
+    };
+    document.head.appendChild(script);
+  } else {
+    doAuth(callback, btn);
+  }
+}
+
+function doAuth(callback, btn) {
+  var CLIENT_ID="435575535630-3sbru26ing9enss8c2ki26usjn6ccsvp.apps.googleusercontent.com";
+  if(!CLIENT_ID){
+    /* OAuth 클라이언트 ID 없을 때 → URL 방식으로 fallback */
+    btn.textContent="📅 구글 캘린더에 저장";
+    btn.style.opacity="1"; btn.disabled=false;
+    openCalendarUrl();
+    return;
+  }
+  var tokenClient=window.google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope:"https://www.googleapis.com/auth/calendar.events",
+    callback: function(resp){
+      if(resp.access_token){ callback(resp.access_token); }
+      else { btn.textContent="📅 구글 캘린더에 저장"; btn.style.opacity="1"; btn.disabled=false; }
+    }
+  });
+  tokenClient.requestAccessToken();
+}
+
+function openCalendarUrl() {
+  /* fallback: URL 방식 */
+  var clientLabel=state.address||"고객";
+  var managerStr=state.manager==="배정미정"?"배정미정":(state.manager||"-");
+  var expItems=(state.expansion||[]).filter(function(x){return x!=="확장 없음";});
+  var workSummary=state.workType||"";
+  if(state.sash==="샷시 진행") workSummary+="/샷시";
+  if(expItems.length) workSummary+="/확장("+expItems.join("·")+")";
+  if(state.aircon==="시스템에어컨 포함"&&state.airconCnt) workSummary+="/에어컨"+state.airconCnt;
+  if(state.heating==="방통 포함") workSummary+="/방통";
+  var parts=state.dt.split("T"), dp=parts[0], tp=parts[1]||"10:00";
+  var ymd=dp.split("-"), hm=tp.split(":");
+  var s=ymd[0]+ymd[1]+ymd[2]+"T"+hm[0]+hm[1]+"00";
+  var eh=String(parseInt(hm[0])+1).padStart(2,"0");
+  var e2=ymd[0]+ymd[1]+ymd[2]+"T"+eh+hm[1]+"00";
+  var calId=getCalendarId();
+  var t=encodeURIComponent(makeEventTitle());
+  var d=encodeURIComponent(makeEventBody());
+  var url="https://calendar.google.com/calendar/render?action=TEMPLATE&text="+t+"&dates="+s+"/"+e2+"&details="+d+"&src="+encodeURIComponent(calId);
+  window.open(url,"_blank");
+}
+
+function buildStepHTML(s, sn, total) {
+  if(s.type==="aptselect") {
+    return buildAptSelectHTML(s, sn, total);
+  }
+  if(s.type==="airconselect") {
+    return buildAirconSelectHTML(s, sn, total);
+  }
+  if(s.type==="estimate") {
+    var e=calcEst();
+    var rows="";
+    if(state.workType==="부분공사"){
+      rows='<div style="font-size:15px;color:#15803d;padding:16px 0;text-align:center;line-height:1.7;">부분공사는 현장 실측 후<br>정확한 금액을 안내해 드립니다.</div>';
+    } else {
+      if(e.baseCost>0) rows+='<div class="est-row"><span class="label">'+e.baseLabel+'</span><span>'+fmt(e.baseCost)+'</span></div>';
+      if(e.expCost>0)  rows+='<div class="est-row"><span class="label">확장 ('+e.expItems.join(", ")+')</span><span>'+fmt(e.expCost)+'</span></div>';
+      if(e.acCost>0)   rows+='<div class="est-row"><span class="label">시스템에어컨 '+state.airconCnt+' (단내림별도)</span><span>'+fmt(e.acCost)+'</span></div>';
+      if(e.htCost>0)   rows+='<div class="est-row"><span class="label">방통(보일러배관) '+e.sz+'평</span><span>'+fmt(e.htCost)+'</span></div>';
+      if(e.total>0) rows+='<div class="est-total" style="margin-top:12px;"><span>예상 합계</span><span>'+fmt(e.total)+'</span></div>';
+    }
+    return '<div class="card">'
+      +'<div class="step-badge">💰 예상 견적 확인 ('+sn+'/'+total+')</div>'
+      +'<div class="step-question">고객께 아래 예상 금액을 안내해 주세요.</div>'
+      +'<div style="background:#f0fdf4;border:2px solid #86efac;border-radius:10px;padding:16px;margin:14px 0;">'
+      +rows
+      +'<div class="est-note" style="margin-top:10px;">※ 현장 실측 후 정확한 금액이 결정됩니다.</div>'
+      +'</div>'
+      +'<div class="nav-row">'
+      +(stepIdx>0?'<button class="btn-back" onclick="goBack()">← 이전</button>':"")
+      +'<button class="btn-next green" onclick="goNext()">✅ 금액 안내 완료, 다음 단계</button>'
+      +'</div></div>';
+  }
+
+  var inp="", hint=s.hint?'<div class="step-hint">💡 '+s.hint+'</div>':"";
+
+  if(s.type==="info"){
+    inp='<div class="info-box"><div class="ico">📞</div><p>고객 전화 수신 후 아래 순서대로<br>질문하며 상담을 진행해 주세요.<br><br>\'다음\'을 눌러 첫 번째 질문으로 이동합니다.</p></div>';
+    hint="";
+  } else if(s.type==="workstart"){
+    var quickOpts=["즉시 가능","1개월 이내","2~3개월 이내","6개월 이후","미정"];
+    var curWs=state.workStart||"";
+    /* 날짜 선택인지 빠른선택인지 구분 */
+    var isQuick=quickOpts.indexOf(curWs)!==-1||curWs==="";
+    var dateVal=isQuick?"":curWs;
+    inp='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;">';
+    quickOpts.forEach(function(o){
+      var sel=curWs===o;
+      inp+='<button onclick="pickWorkStart(\''+o+'\')" style="padding:10px 6px;border:2px solid '+(sel?'#1a7fc4':'#dde3ea')+';border-radius:8px;background:'+(sel?'#1a7fc4':'#fafbfc')+';color:'+(sel?'white':'#333')+';font-family:inherit;font-size:13px;cursor:pointer;text-align:center;">'+o+'</button>';
+    });
+    inp+='</div>';
+    inp+='<div style="font-size:12px;color:#888;margin-bottom:8px;">또는 날짜를 직접 선택해 주세요.</div>';
+    inp+='<div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:8px;">'
+      +'<input class="text-input" type="text" id="si" placeholder="예) 6월 초, 7월 중순, 입주 후 바로 등" value="'+curWs+'" oninput="state.workStart=this.value;clearWorkStartBtns();" style="margin-bottom:0;" />'
+      +'<input type="date" id="wsDate" style="padding:10px 12px;border:2px solid #dde3ea;border-radius:8px;font-family:inherit;font-size:14px;color:#1a2a3a;cursor:pointer;" onchange="applyWorkStartDate(this.value)">'
+      +'</div>';
+    if(curWs&&quickOpts.indexOf(curWs)===-1){
+      inp+='<div id="wsDateLabel" style="font-size:14px;font-weight:700;color:#1a7fc4;text-align:center;margin-top:4px;">📅 '+curWs+'</div>';
+    } else {
+      inp+='<div id="wsDateLabel" style="font-size:14px;font-weight:700;color:#1a7fc4;text-align:center;margin-top:4px;display:none;"></div>';
+    }
+  } else if(s.type==="text"||s.type==="tel"){
+    inp='<input class="text-input" type="'+(s.type==="tel"?"tel":"text")+'" id="si" placeholder="'+(s.placeholder||"")+'" value="'+(state[s.key]||"")+'" />';
+  } else if(s.type==="choice"){
+    var cols=s.cols||2;
+    inp='<div class="choice-grid" style="grid-template-columns:repeat('+cols+',1fr)">';
+    s.opts.forEach(function(o){
+      var sel=state[s.key]===o?" selected":"";
+      inp+='<button class="choice-btn'+sel+'" onclick="pick(\''+s.key+'\',\''+o.replace(/'/g,"\\'")+'\')">'+o+'</button>';
+    });
+    inp+='</div>';
+  } else if(s.type==="checkbox"){
+    inp='<div class="cb-grid">';
+    s.opts.forEach(function(o){
+      var ck=(state[s.key]||[]).indexOf(o)!==-1;
+      var esc=o.replace(/'/g,"\\'");
+      inp+='<label class="cb-item'+(ck?" checked":"")+'" onclick="toggleCb(\''+s.key+'\',\''+esc+'\',this);return false;"><input type="checkbox" '+(ck?"checked":"")+'>'+o+'</label>';
+    });
+    inp+='</div><div style="font-size:12px;color:#888;margin-bottom:4px;">선택 완료 후 \'다음\' 버튼을 눌러주세요.</div>';
+  } else if(s.type==="datetime"){
+    var today=new Date().toISOString().slice(0,10);
+    var dv=(state.dt||"").split("T")[0]||today;
+    var tv=(state.dt||"").split("T")[1]||"10:00";
+    var dayStr=getDayOfWeek(dv+"T"+tv);
+    inp='<div class="datetime-row"><input type="date" id="di" value="'+dv+'" onchange="updateDayLabel()"><input type="time" id="ti" value="'+tv+'"></div>'
+      +'<div id="dayLabel" style="font-size:16px;font-weight:700;color:#1a7fc4;margin:8px 0 4px;text-align:center;">📅 '+dv+' ('+dayStr+') '+tv+'</div>';
+  }
+
+  var backBtn=stepIdx>0?'<button class="btn-back" onclick="goBack()">← 이전</button>':"";
+  return '<div class="card">'
+    +'<div class="step-badge">'+s.label+' ('+sn+'/'+total+')</div>'
+    +'<div class="step-question">'+s.q+'</div>'
+    +hint+inp
+    +'<div class="nav-row">'+backBtn+'<button class="btn-next" onclick="goNext()">다음 →</button></div>'
+    +'</div>';
+}
+
+function renderResult() {
+  var booked=state.wantBook==="예약할게요";
+  var sa=document.getElementById("stepArea");
+  if(!sa) return;
+
+  if(!booked){
+    var e2=calcEst();
+    var estStr2=state.workType==="부분공사"?"현장확인":(e2.total>0?fmt(e2.total):"-");
+    var noMsg="📋 [예원디자인 상담 기록 - 미예약]\n\n🏠 주소: "+(state.address||"-")+" ("+(state.size||"-")+"평 / "+(state.place||"-")+")\n🔧 공사: "+(state.workType||"-")+(state.workType==="부분공사"&&state.partialDetail?" / "+state.partialDetail:"")+"\n💰 예상: "+estStr2+"\n📌 방문의사: 없음 (추후 재연락 가능)";
+    sa.innerHTML='<div class="result-section">'
+      +'<div class="done-banner"><div class="ico">📞</div><h2>9단계 - 감사합니다!</h2><p>고객이 예약을 원하지 않으셨습니다.<br>상담 기록을 복사해 보관해 주세요.</p></div>'
+      +'<h3>📋 상담 기록 (미예약)</h3>'
+      +'<div class="msg-box" id="noMsg">'+noMsg+'</div>'
+      +'<button class="action-btn outline" id="cpB1" onclick="copyText(\'noMsg\',\'cpB1\')">📋 상담기록 복사</button>'
+      +'<button class="action-btn outline" id="sheetSaveBtn" onclick="saveToSheets()" style="margin-top:8px;">📊 구글 시트에 저장</button>'
+      +'<button class="action-btn outline" style="margin-top:8px;" onclick="resetAll()">🔄 새 상담 시작</button>'
+      +'</div>';
+    return;
+  }
+
+  var msg=makeKakaoMsg();
+  var dtStr=formatDt(state.dt);
+  var clientLabel=state.address||"-";
+  var managerStr=state.manager==="배정미정"?"⚠️ 배정미정":(state.manager||"-");
+  var locAlert=state.knowLoc==="모르겠어요"
+    ?'<div class="loc-alert">📍 <b>위치 문자 발송 필요</b><br>평촌점: 귀인중학교 근처로 오시면 됩니다.<br>안산점: 한대앞역 가는 큰길쪽에 있습니다.</div>':"";
+
+  /* 배정미정이면 팀장 수정 UI 표시 */
+  var managerEdit='';
+  if(state.manager==="배정미정"){
+    managerEdit='<div style="background:#fff8e1;border:1px solid #fbbf24;border-radius:8px;padding:14px;margin-bottom:12px;">'
+      +'<div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:10px;">👔 팀장 배정 (나중에 변경 가능)</div>'
+      +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">'
+      +['김홍내','김재웅','이성찬','정길용'].map(function(m){
+        return '<button onclick="changeManager(\''+m+'\')" style="padding:9px 4px;border:2px solid #dde3ea;border-radius:7px;background:white;font-family:inherit;font-size:13px;cursor:pointer;">'+m+'</button>';
+      }).join("")
+      +'</div></div>';
+  }
+
+  sa.innerHTML='<div class="result-section">'
+    +'<div class="done-banner"><div class="ico">✅</div><h2>예약 완료!</h2><p>'+clientLabel+' / '+dtStr+'<br>담당: '+managerStr+(state.region?'<br>지역: '+state.region:'')+'</p></div>'
+    +locAlert
+    +managerEdit
+
+    /* ── 수정 패널 ── */
+    +'<div style="background:#f8f9fa;border:1px solid #e0e6ed;border-radius:10px;padding:16px;margin-bottom:14px;">'
+    +'<div style="font-size:13px;font-weight:700;color:#555;margin-bottom:12px;">✏️ 예약 정보 수정</div>'
+
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">'
+    /* 아파트명 */
+    +'<div><div style="font-size:11px;color:#888;margin-bottom:4px;">아파트명</div>'
+    +'<input type="text" id="edit_address" value="'+(state.address||"")+'" style="width:100%;padding:8px 10px;border:1.5px solid #dde3ea;border-radius:7px;font-size:13px;font-family:inherit;" /></div>'
+    /* 평수 */
+    +'<div><div style="font-size:11px;color:#888;margin-bottom:4px;">평수</div>'
+    +'<input type="text" id="edit_size" value="'+(state.size||"")+'" style="width:100%;padding:8px 10px;border:1.5px solid #dde3ea;border-radius:7px;font-size:13px;font-family:inherit;" /></div>'
+    +'</div>'
+
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">'
+    /* 연락처 */
+    +'<div><div style="font-size:11px;color:#888;margin-bottom:4px;">연락처</div>'
+    +'<input type="tel" id="edit_phone" value="'+(state.phone||"")+'" style="width:100%;padding:8px 10px;border:1.5px solid #dde3ea;border-radius:7px;font-size:13px;font-family:inherit;" /></div>'
+    /* 공사시작일 */
+    +'<div><div style="font-size:11px;color:#888;margin-bottom:4px;">공사시작 희망일</div>'
+    +'<input type="text" id="edit_workStart" value="'+(state.workStart||"")+'" style="width:100%;padding:8px 10px;border:1.5px solid #dde3ea;border-radius:7px;font-size:13px;font-family:inherit;" /></div>'
+    +'</div>'
+
+    /* 예약일시 */
+    +'<div style="margin-bottom:8px;"><div style="font-size:11px;color:#888;margin-bottom:4px;">예약 날짜 / 시간</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'
+    +'<input type="date" id="edit_date" value="'+(state.dt||"").split("T")[0]+'" style="padding:8px 10px;border:1.5px solid #dde3ea;border-radius:7px;font-size:13px;font-family:inherit;" />'
+    +'<input type="time" id="edit_time" value="'+(state.dt||"").split("T")[1]+'" style="padding:8px 10px;border:1.5px solid #dde3ea;border-radius:7px;font-size:13px;font-family:inherit;" />'
+    +'</div></div>'
+
+    /* 담당팀장 */
+    +'<div style="margin-bottom:12px;"><div style="font-size:11px;color:#888;margin-bottom:6px;">담당 팀장</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;">'
+    +['김홍내','김재웅','이성찬','정길용','배정미정'].map(function(m){
+      var sel=state.manager===m;
+      return '<button onclick="editPickManager(\''+m+'\')" id="emgr_'+m+'" style="padding:8px 4px;border:2px solid '+(sel?'#1a7fc4':'#dde3ea')+';border-radius:7px;background:'+(sel?'#1a7fc4':'white')+';color:'+(sel?'white':'#333')+';font-family:inherit;font-size:12px;cursor:pointer;">'+m+'</button>';
+    }).join("")
+    +'</div></div>'
+
+    /* 지역 선택 */
+    +'<div style="margin-bottom:12px;"><div style="font-size:11px;color:#888;margin-bottom:6px;">지역</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">'
+    +['안산','안양','군포','산본','과천','화성','의왕','시흥','기타'].map(function(r){
+      var sel=state.region===r;
+      return '<button onclick="editPickRegion(\''+r+'\')" id="ergn_'+r+'" style="padding:8px 4px;border:2px solid '+(sel?'#1a7fc4':'#dde3ea')+';border-radius:7px;background:'+(sel?'#1a7fc4':'white')+';color:'+(sel?'white':'#333')+';font-family:inherit;font-size:13px;cursor:pointer;">'+r+'</button>';
+    }).join("")
+    +'</div></div>'
+
+    +'<button onclick="applyEdit()" style="width:100%;padding:11px;background:#1a7fc4;color:white;border:none;border-radius:8px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;">✅ 수정 내용 적용</button>'
+    +'</div>'
+    /* ── 수정 패널 끝 ── */
+
+    +(state.dt?'<button class="action-btn blue" id="calSaveBtn" onclick="saveToGoogleCalendar()">'
+      +(state.city==="안산"?"🟡 예원안산매장상담 캘린더에 저장":"🟣 평촌매장상담 캘린더에 저장")
+      +'</button>':"")
+    +'<div id="calEventLink" style="text-align:center;margin:4px 0;"></div>'
+    +'<div style="font-size:11px;color:#888;margin:4px 0 14px;">'
+      +(state.city==="안산"?"노란색 캘린더(예원안산매장상담)":"보라색 캘린더(평촌매장상담)")
+      +' 에 자동 저장됩니다.</div>'
+    +'<h3>💬 카카오톡 단체방 메시지</h3>'
+    +'<div class="msg-box" id="kakaoMsg">'+msg+'</div>'
+    +'<button class="action-btn green" id="cpB2" onclick="copyText(\'kakaoMsg\',\'cpB2\')">📋 카카오톡 메시지 복사</button>'
+    +'<button class="action-btn outline" id="sheetSaveBtn" onclick="saveToSheets()" style="margin-top:8px;">📊 구글 시트에 저장</button>'
+    +'<button class="action-btn outline" style="margin-top:8px;" onclick="resetAll()">🔄 새 상담 시작</button>'
+    +'</div>';
+}
+
+function applyWorkStartDate(val){
+  if(!val) return;
+  var days=["일","월","화","수","목","금","토"];
+  var d=new Date(val);
+  var dayStr=days[d.getDay()]+"요일";
+  var ymd=val.split("-");
+  var label=ymd[0]+"년 "+parseInt(ymd[1])+"월 "+parseInt(ymd[2])+"일 ("+dayStr+")";
+  state.workStart=label;
+  var si=document.getElementById("si");
+  if(si) si.value=label;
+  clearWorkStartBtns();
+  /* 날짜 표시 갱신 */
+  var lbl=document.getElementById("wsDateLabel");
+  if(lbl){ lbl.textContent="📅 "+label; lbl.style.display="block"; }
+}
+
+function clearWorkStartBtns(){
+  var btns=document.querySelectorAll("#stepArea button[onclick^='pickWorkStart']");
+  btns.forEach(function(b){
+    b.style.borderColor='#dde3ea';
+    b.style.background='#fafbfc';
+    b.style.color='#333';
+  });
+}
+
+function pickWorkStart(val){
+  state.workStart=val;
+  var si=document.getElementById("si");
+  if(si) si.value=val;
+  /* 달력 초기화 */
+  var wsDate=document.getElementById("wsDate");
+  if(wsDate) wsDate.value="";
+  var lbl=document.getElementById("wsDateLabel");
+  if(lbl) lbl.style.display="none";
+  var btns=document.querySelectorAll("#stepArea button[onclick^='pickWorkStart']");
+  btns.forEach(function(b){
+    var sel=b.textContent===val;
+    b.style.borderColor=sel?'#1a7fc4':'#dde3ea';
+    b.style.background=sel?'#1a7fc4':'#fafbfc';
+    b.style.color=sel?'white':'#333';
+  });
+}
+
+function pick(key, val) {
+  state[key]=val;
+  updateEstCard();
+  updateSummary();
+  var sa=document.getElementById("stepArea");
+  if(!sa) return;
+  /* 선택 버튼 색상만 갱신 */
+  var btns=sa.querySelectorAll(".choice-btn");
+  btns.forEach(function(b){ b.classList.toggle("selected", b.textContent.trim()===val); });
+  /* 팀장 배정(s8b)은 선택 즉시 다음으로 이동 */
+  var steps=getActive();
+  var s=steps[stepIdx];
+  if(s && s.id==="s8c") {
+    setTimeout(function(){
+      stepIdx++;
+      updateEstCard();
+      updateSummary();
+      render();
+    }, 300);
+  }
+}
+
+function toggleCb(key, val, el) {
+  state[key]=state[key]||[];
+  if(val==="확장 없음"){ state[key]=["확장 없음"]; }
+  else {
+    state[key]=state[key].filter(function(x){return x!=="확장 없음";});
+    var i=state[key].indexOf(val);
+    if(i===-1) state[key].push(val); else state[key].splice(i,1);
+  }
+  var grid=el.closest?el.closest(".cb-grid"):null;
+  if(grid){
+    grid.querySelectorAll(".cb-item").forEach(function(item){
+      var txt=item.textContent.trim();
+      var inList=state[key].indexOf(txt)!==-1;
+      item.classList.toggle("checked",inList);
+      var cb=item.querySelector("input");
+      if(cb) cb.checked=inList;
+    });
+  }
+  updateEstCard();
+  updateSummary();
+}
+
+function goNext() {
+  var steps=getActive(), s=steps[stepIdx];
+  if(s){
+    if(s.type==="text"||s.type==="tel"||s.type==="aptselect"){
+      var el=document.getElementById("si");
+      if(el) state[s.key]=el.value.trim();
+      /* 전화번호 앞에 0 자동 추가 */
+      if(s.type==="tel" && state[s.key]){
+        var phone=state[s.key].replace(/[^0-9]/g,"");
+        if(phone.charAt(0)!=="0") phone="0"+phone;
+        /* 010-0000-0000 형식으로 포맷 */
+        if(phone.length===11) phone=phone.slice(0,3)+"-"+phone.slice(3,7)+"-"+phone.slice(7);
+        else if(phone.length===10) phone=phone.slice(0,3)+"-"+phone.slice(3,6)+"-"+phone.slice(6);
+        state[s.key]=phone;
+      }
+      if(!state[s.key]){ alert("아파트명을 선택하거나 직접 입력해 주세요."); return; }
+    } else if(s.type==="workstart"){
+      var el=document.getElementById("si");
+      if(el) state.workStart=el.value.trim();
+      if(!state.workStart){ alert("공사 시작일을 선택하거나 입력해 주세요."); return; }
+    } else if(s.type==="airconselect"){
+      if(!state[s.key]){ alert("에어컨 대수를 선택해 주세요."); return; }
+    } else if(s.type==="datetime"){
+      var di=document.getElementById("di"), ti=document.getElementById("ti");
+      if(di&&ti) state.dt=di.value+"T"+ti.value;
+    } else if(s.type==="checkbox"){
+      if(!state[s.key]||state[s.key].length===0){alert("하나 이상 선택해 주세요.");return;}
+    } else if(s.type==="choice"){
+      if(!state[s.key]){alert("항목을 선택해 주세요.");return;}
+    }
+  }
+  stepIdx++;
+  updateEstCard();
+  updateSummary();
+  render();
+}
+
+function goBack() {
+  if(stepIdx>0){ stepIdx--; render(); }
+}
+
+function copyText(id, btnId){
+  var el=document.getElementById(id);
+  if(!el) return;
+  var txt=el.innerText||el.textContent||"";
+  var btn=document.getElementById(btnId);
+
+  function markDone(){
+    if(btn){ btn.style.background="#16a34a"; btn.style.color="white"; btn.textContent="✅ 복사 완료!"; }
+    setTimeout(function(){ if(btn){ btn.style.background=""; btn.style.color=""; btn.textContent="📋 카카오톡 메시지 복사"; } },2500);
+  }
+
+  /* 1차: clipboard API */
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(markDone).catch(function(){
+      fallbackCopy(txt, markDone);
+    });
+  } else {
+    fallbackCopy(txt, markDone);
+  }
+}
+
+function fallbackCopy(txt, cb){
+  var ta=document.createElement("textarea");
+  ta.value=txt;
+  ta.style.cssText="position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;";
+  document.body.appendChild(ta);
+  ta.focus(); ta.select();
+  try{ document.execCommand("copy"); cb(); }
+  catch(e){ alert("복사에 실패했습니다. 메시지를 직접 드래그해서 복사해 주세요."); }
+  document.body.removeChild(ta);
+}
+
+function editPickRegion(r){
+  state.region=r;
+  updateSummary();
+  ['안산','안양','군포','산본','과천','화성','의왕','시흥','기타'].forEach(function(n){
+    var b=document.getElementById("ergn_"+n);
+    if(!b) return;
+    var sel=n===r;
+    b.style.borderColor=sel?'#1a7fc4':'#dde3ea';
+    b.style.background=sel?'#1a7fc4':'white';
+    b.style.color=sel?'white':'#333';
+  });
+}
+
+function editPickManager(m){
+  state.manager=m;
+  ['김홍내','김재웅','이성찬','정길용','배정미정'].forEach(function(n){
+    var b=document.getElementById("emgr_"+n);
+    if(!b) return;
+    var sel=n===m;
+    b.style.borderColor=sel?'#1a7fc4':'#dde3ea';
+    b.style.background=sel?'#1a7fc4':'white';
+    b.style.color=sel?'white':'#333';
+  });
+}
+
+function applyEdit(){
+  /* 입력값 반영 */
+  var addr=document.getElementById("edit_address");
+  var size=document.getElementById("edit_size");
+  var phone=document.getElementById("edit_phone");
+  var wstart=document.getElementById("edit_workStart");
+  var edate=document.getElementById("edit_date");
+  var etime=document.getElementById("edit_time");
+  if(addr)  state.address   = addr.value.trim()||state.address;
+  if(size)  state.size      = size.value.trim()||state.size;
+  if(phone) state.phone     = phone.value.trim()||state.phone;
+  if(wstart)state.workStart = wstart.value.trim()||state.workStart;
+  if(edate&&etime&&edate.value) state.dt = edate.value+"T"+etime.value;
+
+  updateSummary();
+  /* 결과 화면 새로고침 */
+  renderResult();
+  /* 수정 완료 알림 */
+  setTimeout(function(){
+    var banner=document.querySelector(".done-banner h2");
+    if(banner){ banner.textContent="✅ 수정 완료!"; setTimeout(function(){ banner.textContent="예약 완료!"; },1500); }
+  },100);
+}
+
+function changeManager(m){
+  state.manager=m;
+  updateSummary();
+  renderResult();
+}
+
+function resetAll(){ state={}; stepIdx=0; render(); }
+
+function render(){
+  var steps=getActive();
+  updateProgress();
+  updateEstCard();
+  updateSummary();
+  var sa=document.getElementById("stepArea");
+  if(!sa) return;
+  if(stepIdx>=steps.length){
+    renderResult();
+  } else {
+    sa.innerHTML=buildStepHTML(steps[stepIdx],stepIdx+1,steps.length);
+    var si=document.getElementById("si");
+    if(si){ si.focus(); si.addEventListener("keydown",function(e){if(e.key==="Enter")goNext();}); }
+  }
+}
+
+render();
+</script>
+</body>
+</html>
