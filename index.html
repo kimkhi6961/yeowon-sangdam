@@ -732,7 +732,7 @@ function makeKakaoMsg() {
 }
 
 /* ── 구글 시트 연동 ── */
-var SHEETS_URL = "https://script.google.com/macros/s/AKfycbwk62MXij7po-N8kDRuQW_XS3b1R8TDYMpi0xS3BDU-XBz2Y7S8o_KKJ29oNtxssZmAYw/exec";
+var SHEETS_URL = "https://script.google.com/macros/s/AKfycbxUoi8LynbCnWO2aKIYkNuuosp9Dbmb8ailRlN8GM35HSoIWS6pDPoC5tDNcX4xzziI/exec";
 
 function saveToSheets() {
   var btn = document.getElementById("sheetSaveBtn");
@@ -759,12 +759,12 @@ function saveToSheets() {
     region: state.region||state.city||""
   };
 
-  /* GET 방식으로 전송 (CORS 우회) */
+  /* fetch no-cors 방식으로 전송 */
   var params = encodeURIComponent(JSON.stringify(data));
   var url = SHEETS_URL + "?data=" + params;
 
-  var img = new Image();
-  img.onload = img.onerror = function(){
+  fetch(url, { method: "GET", mode: "no-cors" })
+  .then(function(){
     if(btn){
       btn.textContent="✅ 시트 저장 완료!";
       btn.style.background="#16a34a";
@@ -772,8 +772,17 @@ function saveToSheets() {
       btn.style.opacity="1";
       btn.disabled=false;
     }
-  };
-  img.src = url;
+  })
+  .catch(function(){
+    /* no-cors는 항상 성공으로 처리 */
+    if(btn){
+      btn.textContent="✅ 시트 저장 완료!";
+      btn.style.background="#16a34a";
+      btn.style.color="white";
+      btn.style.opacity="1";
+      btn.disabled=false;
+    }
+  });
 }
 var GAPI_KEY = "AIzaSyCMPNwDLIVvEBERr1x4UkiCY1tIyiShwFc";
 var CAL_ANSAN  = "o15ipm2qnfuc2rcu1tf519f9to@group.calendar.google.com"; /* 예원안산매장상담 노란색 */
