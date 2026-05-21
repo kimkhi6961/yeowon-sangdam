@@ -426,7 +426,7 @@ var STEPS = [
   { id:"s2_city", label:"2단계", q:"어느 지역 아파트이신가요?", type:"choice", key:"city", cols:2, opts:["안양","안산"], cond:function(s){return s.place==="아파트";} },
   { id:"s2_apt", label:"2단계", q:"아파트를 선택하거나 직접 입력해 주세요.", type:"aptselect", key:"address", cond:function(s){return s.place==="아파트"&&s.city;} },
   { id:"s2b", label:"2단계", q:"주소를 알려주세요.", type:"text", key:"address", placeholder:"예) 안산시 단원구 OO동 OO번지", cond:function(s){return s.place==="주택/빌라";} },
-  { id:"s3",  label:"3단계", q:"몇 평이신가요?", type:"text", key:"size", placeholder:"예) 32", hint:"33평 기준으로 평단가가 달라집니다." },
+  { id:"s3",  label:"3단계", q:"몇 평이신가요?", type:"sizeselect", key:"size", hint:"33평 기준으로 평단가가 달라집니다." },
   { id:"s3b", label:"3단계", q:"공사 시작일은 언제로 생각하고 계신가요?", type:"workstart", key:"workStart", hint:"대략적인 시기도 괜찮습니다. 예) 6월 초, 7월 중순, 빠를수록 좋다 등" },
   { id:"s4a", label:"4단계", q:"공사하실 내용은 올공사 하시나요,\n부분공사 하시나요?", type:"choice", key:"workType", cols:2, opts:["올공사","부분공사"] },
   { id:"s4b", label:"4단계", q:"부분공사 내용을 확인해 주세요.\n어느 부분 공사를 원하시나요?", type:"text", key:"partialDetail", placeholder:"예) 화장실, 주방 타일 등", cond:function(s){return s.workType==="부분공사";} },
@@ -990,6 +990,27 @@ function buildStepHTML(s, sn, total) {
 
   var inp="", hint=s.hint?'<div class="step-hint">💡 '+s.hint+'</div>':"";
 
+  if(s.type==="sizeselect") {
+    var curSize = state.size || "";
+    var sizes = [];
+    for(var i=15; i<=60; i++) sizes.push(i);
+    var inp = '<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:12px;">';
+    sizes.forEach(function(sz){
+      var sel = curSize === String(sz);
+      inp += '<button onclick="pickSize('+sz+')" style="padding:9px 4px;border:2px solid '+(sel?'#1a7fc4':'#dde3ea')+';border-radius:7px;background:'+(sel?'#1a7fc4':'#fafbfc')+';color:'+(sel?'white':'#333')+';font-family:inherit;font-size:13px;cursor:pointer;text-align:center;">'+sz+'평</button>';
+    });
+    inp += '</div>';
+    inp += '<div style="font-size:12px;color:#888;margin-bottom:6px;">목록에 없으면 직접 입력해 주세요.</div>';
+    inp += '<input class="text-input" type="number" id="si" placeholder="직접 입력 (예: 28)" value="'+curSize+'" oninput="state.size=this.value;updateSizeBtn();updateEstCard();" />';
+    var hint = s.hint ? '<div class="step-hint">💡 '+s.hint+'</div>' : "";
+    var backBtn = stepIdx>0?'<button class="btn-back" onclick="goBack()">← 이전</button>':"";
+    return '<div class="card">'
+      +'<div class="step-badge">'+s.label+' ('+sn+'/'+total+')</div>'
+      +'<div class="step-question">'+s.q+'</div>'
+      +hint+inp
+      +'<div class="nav-row">'+backBtn+'<button class="btn-next" onclick="goNext()">다음 →</button></div>'
+      +'</div>';
+  }
   if(s.type==="info"){
     inp='<div class="info-box"><div class="ico">📞</div><p>고객 전화 수신 후 아래 순서대로<br>질문하며 상담을 진행해 주세요.<br><br>\'다음\'을 눌러 첫 번째 질문으로 이동합니다.</p></div>';
     hint="";
@@ -1213,6 +1234,26 @@ function pickWorkStart(val){
   });
 }
 
+function pickSize(sz) {
+  state.size = String(sz);
+  var si = document.getElementById("si");
+  if(si) si.value = sz;
+  updateSizeBtn();
+  updateEstCard();
+  updateSummary();
+}
+
+function updateSizeBtn() {
+  var btns = document.querySelectorAll("#stepArea button[onclick^='pickSize']");
+  btns.forEach(function(b){
+    var bsz = b.textContent.replace("평","").trim();
+    var sel = bsz === String(state.size);
+    b.style.borderColor = sel?'#1a7fc4':'#dde3ea';
+    b.style.background  = sel?'#1a7fc4':'#fafbfc';
+    b.style.color       = sel?'white':'#333';
+  });
+}
+
 function pick(key, val) {
   state[key]=val;
   updateEstCard();
@@ -1260,7 +1301,11 @@ function toggleCb(key, val, el) {
 function goNext() {
   var steps=getActive(), s=steps[stepIdx];
   if(s){
-    if(s.type==="text"||s.type==="tel"||s.type==="aptselect"){
+    if(s.type==="sizeselect"){
+      var el=document.getElementById("si");
+      if(el&&el.value.trim()) state.size=el.value.trim();
+      if(!state.size){ alert("평수를 선택하거나 입력해 주세요."); return; }
+    } else if(s.type==="text"||s.type==="tel"||s.type==="aptselect"){
       var el=document.getElementById("si");
       if(el) state[s.key]=el.value.trim();
       /* 전화번호 앞에 0 자동 추가 */
