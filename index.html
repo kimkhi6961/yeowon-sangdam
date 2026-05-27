@@ -400,7 +400,7 @@
     <div id="stepArea"></div>
   </div>
 
-  <!-- 오른쪽: 견적 + 요약 -->
+  <!-- 오른쪽: 견적 + 단가표 + 요약 -->
   <div class="right-panel">
     <div class="est-card" id="estCard">
       <h3>💰 예상 견적</h3>
@@ -408,6 +408,44 @@
         공사 항목을 입력하면<br>자동으로 계산됩니다
       </div>
     </div>
+
+    <!-- 단가표 카드 -->
+    <div style="background:white;border-radius:12px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,0.08);margin-bottom:16px;" id="priceTableCard">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <h3 style="font-size:13px;color:#1a7fc4;font-weight:700;">📊 평단가 기준표</h3>
+        <button onclick="resetPrices()" style="font-size:11px;padding:3px 8px;border:1px solid #dde3ea;border-radius:5px;background:white;cursor:pointer;color:#888;">초기화</button>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead>
+          <tr style="background:#f0f7ff;">
+            <th style="padding:6px 4px;text-align:left;color:#1a7fc4;font-weight:600;">공사내용</th>
+            <th style="padding:6px 4px;text-align:right;color:#1a7fc4;font-weight:600;">평단가</th>
+          </tr>
+        </thead>
+        <tbody id="priceTableBody"></tbody>
+      </table>
+      <div style="font-size:11px;color:#999;margin-top:8px;">💡 금액 클릭하면 수정 가능</div>
+    </div>
+
+    <!-- 확장/샷시 금액표 -->
+    <div style="background:white;border-radius:12px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,0.08);margin-bottom:16px;" id="expansionTableCard">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <h3 style="font-size:13px;color:#16a34a;font-weight:700;">🏗️ 확장/샷시 금액표</h3>
+        <button onclick="resetExpPrices()" style="font-size:11px;padding:3px 8px;border:1px solid #dde3ea;border-radius:5px;background:white;cursor:pointer;color:#888;">초기화</button>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:11px;">
+        <thead>
+          <tr style="background:#f0fdf4;">
+            <th style="padding:5px 4px;text-align:left;color:#16a34a;font-weight:600;">항목</th>
+            <th style="padding:5px 4px;text-align:right;color:#16a34a;font-weight:600;">샷시미진행</th>
+            <th style="padding:5px 4px;text-align:right;color:#16a34a;font-weight:600;">샷시진행</th>
+          </tr>
+        </thead>
+        <tbody id="expansionTableBody"></tbody>
+      </table>
+      <div style="font-size:11px;color:#999;margin-top:8px;">💡 금액 클릭하면 수정 가능</div>
+    </div>
+
     <div class="summary-card" id="summaryCard">
       <h3>📋 입력 현황</h3>
       <div id="summaryBody" style="font-size:13px;color:#999;">아직 입력된 정보가 없습니다.</div>
@@ -418,6 +456,121 @@
 <script>
 var state = {};
 var stepIdx = 0;
+
+/* ── 기본 단가 데이터 ── */
+var DEFAULT_PRICES = {
+  "올공사만(33평미만)":    1350000,
+  "올공사만(33평이상)":    1300000,
+  "올공사+샷시(33평미만)": 1750000,
+  "올공사+샷시(33평이상)": 1700000,
+  "방통(보일러배관)":       370000
+};
+
+var DEFAULT_EXP = {
+  "거실확장+터닝도어": { n: 6000000, y: 3500000 },
+  "작은방1개":         { n: 4500000, y: 2500000 },
+  "작은방2개":         { n: 8500000, y: 4000000 },
+  "주방+터닝도어":     { n: 5500000, y: 3000000 }
+};
+
+/* localStorage에서 단가 불러오기 */
+function loadPrices() {
+  try {
+    var saved = localStorage.getItem("yeowon_prices");
+    return saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(DEFAULT_PRICES));
+  } catch(e) { return JSON.parse(JSON.stringify(DEFAULT_PRICES)); }
+}
+
+function loadExpPrices() {
+  try {
+    var saved = localStorage.getItem("yeowon_exp_prices");
+    return saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(DEFAULT_EXP));
+  } catch(e) { return JSON.parse(JSON.stringify(DEFAULT_EXP)); }
+}
+
+function savePrices() {
+  try { localStorage.setItem("yeowon_prices", JSON.stringify(PRICES)); } catch(e) {}
+}
+
+function saveExpPrices() {
+  try { localStorage.setItem("yeowon_exp_prices", JSON.stringify(EXP_PRICES)); } catch(e) {}
+}
+
+function resetPrices() {
+  PRICES = JSON.parse(JSON.stringify(DEFAULT_PRICES));
+  savePrices();
+  renderPriceTable();
+  updateEstCard();
+}
+
+function resetExpPrices() {
+  EXP_PRICES = JSON.parse(JSON.stringify(DEFAULT_EXP));
+  saveExpPrices();
+  renderExpTable();
+  updateEstCard();
+}
+
+var PRICES = loadPrices();
+var EXP_PRICES = loadExpPrices();
+
+function fmt2(n) { return parseInt(n).toLocaleString("ko-KR"); }
+
+function renderPriceTable() {
+  var tb = document.getElementById("priceTableBody");
+  if(!tb) return;
+  var html = "";
+  Object.keys(PRICES).forEach(function(key) {
+    html += '<tr style="border-bottom:0.5px solid #f0f0f0;">'
+      +'<td style="padding:6px 4px;color:#333;">'+key+'</td>'
+      +'<td style="padding:6px 4px;text-align:right;">'
+      +'<span onclick="editPrice(\''+key+'\')" style="cursor:pointer;color:#1a7fc4;font-weight:500;border-bottom:1px dashed #1a7fc4;">'
+      +fmt2(PRICES[key])+'원</span></td>'
+      +'</tr>';
+  });
+  tb.innerHTML = html;
+}
+
+function renderExpTable() {
+  var tb = document.getElementById("expansionTableBody");
+  if(!tb) return;
+  var html = "";
+  Object.keys(EXP_PRICES).forEach(function(key) {
+    var esc = key.replace(/'/g,"\\'");
+    html += '<tr style="border-bottom:0.5px solid #f0f0f0;">'
+      +'<td style="padding:5px 4px;color:#333;">'+key+'</td>'
+      +'<td style="padding:5px 4px;text-align:right;">'
+      +'<span onclick="editExpPrice(\''+esc+'\',\'n\')" style="cursor:pointer;color:#16a34a;font-weight:500;border-bottom:1px dashed #16a34a;">'
+      +fmt2(EXP_PRICES[key].n)+'</span></td>'
+      +'<td style="padding:5px 4px;text-align:right;">'
+      +'<span onclick="editExpPrice(\''+esc+'\',\'y\')" style="cursor:pointer;color:#16a34a;font-weight:500;border-bottom:1px dashed #16a34a;">'
+      +fmt2(EXP_PRICES[key].y)+'</span></td>'
+      +'</tr>';
+  });
+  tb.innerHTML = html;
+}
+
+function editPrice(key) {
+  var cur = PRICES[key];
+  var val = prompt("【"+key+"】 평단가 수정\n현재: "+fmt2(cur)+"원", cur);
+  if(val !== null && !isNaN(parseInt(val))) {
+    PRICES[key] = parseInt(val);
+    savePrices();
+    renderPriceTable();
+    updateEstCard();
+  }
+}
+
+function editExpPrice(key, type) {
+  var cur = EXP_PRICES[key][type];
+  var label = type === "n" ? "샷시미진행" : "샷시진행";
+  var val = prompt("【"+key+" / "+label+"】 금액 수정\n현재: "+fmt2(cur)+"원", cur);
+  if(val !== null && !isNaN(parseInt(val))) {
+    EXP_PRICES[key][type] = parseInt(val);
+    saveExpPrices();
+    renderExpTable();
+    updateEstCard();
+  }
+}
 
 var STEPS = [
   { id:"s1",  label:"1단계", q:"안녕하세요 예원디자인입니다.\n고객 전화를 받고 상담을 시작합니다.", type:"info" },
@@ -483,6 +636,14 @@ var APT_DATA = {
     ]
   }
 };
+
+function updatePriceTableVisibility() {
+  var show = stepIdx >= 4;
+  var pc = document.getElementById("priceTableCard");
+  var ec = document.getElementById("expansionTableCard");
+  if(pc) pc.style.display = show ? "block" : "none";
+  if(ec) ec.style.display = show ? "block" : "none";
+}
 
 function buildAptSelectHTML(s, sn, total) {
   var city=state.city||"";
@@ -634,17 +795,20 @@ function calcEst() {
   var sz=parseInt(state.size)||0, big=sz>=33;
   var baseCost=0, baseLabel="";
   if(state.workType==="올공사"){
-    var rate = state.sash==="샷시 진행" ? (big?1700000:1750000) : (big?1300000:1350000);
+    var rate = state.sash==="샷시 진행"
+      ? (big ? PRICES["올공사+샷시(33평이상)"] : PRICES["올공사+샷시(33평미만)"])
+      : (big ? PRICES["올공사만(33평이상)"]    : PRICES["올공사만(33평미만)"]);
     baseCost=rate*sz;
     baseLabel="올공사"+(state.sash==="샷시 진행"?"+샷시":"")+"("+(big?"33평이상":"33평미만")+") "+sz+"평";
   }
-  var expMap={"거실확장+터닝도어":{y:3500000,n:6000000},"작은방1개":{y:2500000,n:4500000},"작은방2개":{y:4000000,n:8500000},"주방+터닝도어":{y:3000000,n:5500000}};
   var expItems=(state.expansion||[]).filter(function(x){return x!=="확장 없음";});
   var expCost=0;
-  expItems.forEach(function(e){if(expMap[e])expCost+=state.sash==="샷시 진행"?expMap[e].y:expMap[e].n;});
+  expItems.forEach(function(e){
+    if(EXP_PRICES[e]) expCost += state.sash==="샷시 진행" ? EXP_PRICES[e].y : EXP_PRICES[e].n;
+  });
   var acMap={"2대":4600000,"3대":5700000,"4대":6900000,"5대":9000000};
   var acCost=state.aircon==="시스템에어컨 포함"?(acMap[state.airconCnt]||0):0;
-  var htCost=state.heating==="방통 포함"?370000*sz:0;
+  var htCost=state.heating==="방통 포함"?PRICES["방통(보일러배관)"]*sz:0;
   return {sz:sz,baseCost:baseCost,baseLabel:baseLabel,expCost:expCost,expItems:expItems,acCost:acCost,htCost:htCost,total:baseCost+expCost+acCost+htCost};
 }
 
@@ -711,7 +875,7 @@ function makeKakaoMsg() {
   var e=calcEst();
   var expList=(state.expansion||[]).filter(function(x){return x!=="확장 없음";});
   var dtStr=formatDt(state.dt);
-  var locNote=state.knowLoc==="모르겠어요"?"\n📍 위치안내: 평촌점 – 귀인중학교 근처\n            안산점 – 한대앞역 큰길":"";
+  var locNote = "";
   var estStr=state.workType==="부분공사"?"현장 확인 후 안내":(e.total>0?fmt(e.total):"-");
   var managerStr=state.manager==="배정미정"?"배정미정 (추후 확정)":(state.manager||"-");
   var clientLabel=(state.region?state.region+" ":"")+(state.address||"-");
@@ -1459,6 +1623,7 @@ function render(){
   updateProgress();
   updateEstCard();
   updateSummary();
+  updatePriceTableVisibility();
   var sa=document.getElementById("stepArea");
   if(!sa) return;
   if(stepIdx>=steps.length){
@@ -1470,6 +1635,13 @@ function render(){
   }
 }
 
+renderPriceTable();
+renderExpTable();
+/* 초기엔 단가표 숨김 */
+var _pc=document.getElementById("priceTableCard");
+var _ec=document.getElementById("expansionTableCard");
+if(_pc) _pc.style.display="none";
+if(_ec) _ec.style.display="none";
 render();
 </script>
 </body>
