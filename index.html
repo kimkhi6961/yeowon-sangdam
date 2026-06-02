@@ -594,7 +594,7 @@ var STEPS = [
   { id:"s6b", label:"고객 정보", q:"연락처를 알려주세요.", type:"tel", key:"phone", placeholder:"010-0000-0000", cond:function(s){return s.wantBook==="예약할게요";} },
   { id:"s7",  label:"7단계", q:"혹시 저희 매장 위치가 어디인지 알고 계신지요?", type:"choice", key:"knowLoc", cols:2, opts:["알고 있어요","모르겠어요"], cond:function(s){return s.wantBook==="예약할게요";} },
   { id:"s8",  label:"8단계", q:"몇 일, 무슨 요일, 몇 시로 예약 잡아드릴까요?", type:"datetime", key:"dt", hint:"날짜와 시간을 선택하면 요일이 자동으로 표시됩니다.", cond:function(s){return s.wantBook==="예약할게요";} },
-  { id:"s8b", label:"8단계", q:"담당 팀장을 배정해 주세요.", type:"choice", key:"manager", cols:3, opts:["김홍내","김재웅","이성찬","정길용","배정미정"], cond:function(s){return s.wantBook==="예약할게요";} },
+  { id:"s8b", label:"8단계", q:"담당 팀장을 배정해 주세요.", type:"choice", key:"manager", cols:3, opts:["김홍내","김사장","이성찬","정길용","배정미정"], cond:function(s){return s.wantBook==="예약할게요";} },
   { id:"s8c", label:"8단계", q:"고객 지역을 선택해 주세요.", type:"choice", key:"region", cols:3, opts:["안산","안양","군포","산본","과천","화성","의왕","시흥","기타"], cond:function(s){return s.wantBook==="예약할게요";} }
 ];
 
@@ -1279,7 +1279,7 @@ function renderResult() {
     managerEdit='<div style="background:#fff8e1;border:1px solid #fbbf24;border-radius:8px;padding:14px;margin-bottom:12px;">'
       +'<div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:10px;">👔 팀장 배정 (나중에 변경 가능)</div>'
       +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">'
-      +['김홍내','김재웅','이성찬','정길용'].map(function(m){
+      +['김홍내','김사장','이성찬','정길용'].map(function(m){
         return '<button onclick="changeManager(\''+m+'\')" style="padding:9px 4px;border:2px solid #dde3ea;border-radius:7px;background:white;font-family:inherit;font-size:13px;cursor:pointer;">'+m+'</button>';
       }).join("")
       +'</div></div>';
@@ -1331,7 +1331,7 @@ function renderResult() {
     /* 담당팀장 */
     +'<div style="margin-bottom:12px;"><div style="font-size:11px;color:#888;margin-bottom:6px;">담당 팀장</div>'
     +'<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;">'
-    +['김홍내','김재웅','이성찬','정길용','배정미정'].map(function(m){
+    +['김홍내','김사장','이성찬','정길용','배정미정'].map(function(m){
       var sel=state.manager===m;
       return '<button onclick="editPickManager(\''+m+'\')" id="emgr_'+m+'" style="padding:8px 4px;border:2px solid '+(sel?'#1a7fc4':'#dde3ea')+';border-radius:7px;background:'+(sel?'#1a7fc4':'white')+';color:'+(sel?'white':'#333')+';font-family:inherit;font-size:12px;cursor:pointer;">'+m+'</button>';
     }).join("")
@@ -1478,7 +1478,6 @@ function goNext() {
     if(s.type==="sizeselect"){
       var el=document.getElementById("si");
       if(el&&el.value.trim()) state.size=el.value.trim();
-      if(!state.size){ alert("평수를 선택하거나 입력해 주세요."); return; }
     } else if(s.type==="text"||s.type==="tel"||s.type==="aptselect"){
       var el=document.getElementById("si");
       if(el) state[s.key]=el.value.trim();
@@ -1486,25 +1485,16 @@ function goNext() {
       if(s.type==="tel" && state[s.key]){
         var phone=state[s.key].replace(/[^0-9]/g,"");
         if(phone.charAt(0)!=="0") phone="0"+phone;
-        /* 010-0000-0000 형식으로 포맷 */
         if(phone.length===11) phone=phone.slice(0,3)+"-"+phone.slice(3,7)+"-"+phone.slice(7);
         else if(phone.length===10) phone=phone.slice(0,3)+"-"+phone.slice(3,6)+"-"+phone.slice(6);
         state[s.key]=phone;
       }
-      if(!state[s.key]){ alert("아파트명을 선택하거나 직접 입력해 주세요."); return; }
     } else if(s.type==="workstart"){
       var el=document.getElementById("si");
       if(el) state.workStart=el.value.trim();
-      if(!state.workStart){ alert("공사 시작일을 선택하거나 입력해 주세요."); return; }
-    } else if(s.type==="airconselect"){
-      if(!state[s.key]){ alert("에어컨 대수를 선택해 주세요."); return; }
     } else if(s.type==="datetime"){
       var di=document.getElementById("di"), ti=document.getElementById("ti");
       if(di&&ti) state.dt=di.value+"T"+ti.value;
-    } else if(s.type==="checkbox"){
-      if(!state[s.key]||state[s.key].length===0){alert("하나 이상 선택해 주세요.");return;}
-    } else if(s.type==="choice"){
-      if(!state[s.key]){alert("항목을 선택해 주세요.");return;}
     }
   }
   stepIdx++;
@@ -1576,7 +1566,7 @@ function editPickRegion(r){
 
 function editPickManager(m){
   state.manager=m;
-  ['김홍내','김재웅','이성찬','정길용','배정미정'].forEach(function(n){
+  ['김홍내','김사장','이성찬','정길용','배정미정'].forEach(function(n){
     var b=document.getElementById("emgr_"+n);
     if(!b) return;
     var sel=n===m;
