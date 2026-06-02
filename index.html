@@ -957,10 +957,14 @@ var COLOR_ANSAN  = "5"; /* banana = 노란색 */
 var COLOR_ANYANG = "3"; /* grape  = 보라색 */
 
 function getCalendarId() {
-  return state.city==="안산" ? CAL_ANSAN : CAL_ANYANG;
+  /* 안양점 팀장: 김홍내, 김사장 → 보라색(평촌매장상담)
+     안산점 팀장: 이성찬, 정길용 → 노란색(예원안산매장상담) */
+  var ansanManagers = ["이성찬", "정길용"];
+  return ansanManagers.indexOf(state.manager) !== -1 ? CAL_ANSAN : CAL_ANYANG;
 }
 function getColorId() {
-  return state.city==="안산" ? COLOR_ANSAN : COLOR_ANYANG;
+  var ansanManagers = ["이성찬", "정길용"];
+  return ansanManagers.indexOf(state.manager) !== -1 ? COLOR_ANSAN : COLOR_ANYANG;
 }
 
 function makeEventTitle() {
@@ -1351,11 +1355,11 @@ function renderResult() {
     /* ── 수정 패널 끝 ── */
 
     +(state.dt?'<button class="action-btn blue" id="calSaveBtn" onclick="saveToGoogleCalendar()">'
-      +(state.city==="안산"?"🟡 예원안산매장상담 캘린더에 저장":"🟣 평촌매장상담 캘린더에 저장")
+      +(["이성찬","정길용"].indexOf(state.manager)!==-1?"🟡 예원안산매장상담 캘린더에 저장":"🟣 평촌매장상담 캘린더에 저장")
       +'</button>':"")
     +'<div id="calEventLink" style="text-align:center;margin:4px 0;"></div>'
     +'<div style="font-size:11px;color:#888;margin:4px 0 14px;">'
-      +(state.city==="안산"?"노란색 캘린더(예원안산매장상담)":"보라색 캘린더(평촌매장상담)")
+      +(["이성찬","정길용"].indexOf(state.manager)!==-1?"노란색 캘린더(예원안산매장상담)":"보라색 캘린더(평촌매장상담)")
       +' 에 자동 저장됩니다.</div>'
     +'<h3>💬 카카오톡 단체방 메시지</h3>'
     +'<div class="msg-box" id="kakaoMsg">'+msg+'</div>'
