@@ -378,7 +378,7 @@
       <span style="font-size:22px;">🏠</span>
       <div>
         <h1>예원디자인 전화상담 시스템</h1>
-        <div class="sub">1→2→3→4→견적확인→5→6→(예약시) 성함·연락처→7→8→9</div>
+        <div class="sub">1→2→3→4→견적확인→5(예약)→(예약시) 연락처·날짜·팀장·지역</div>
       </div>
     </div>
   </div>
@@ -684,13 +684,11 @@ var STEPS = [
   { id:"s4f", label:"4단계", q:"시스템에어컨 몇 대 설치하시나요?\n(단내림 별도)", type:"airconselect", key:"airconCnt", cond:function(s){return s.workType==="올공사"&&s.aircon==="시스템에어컨 포함";} },
   { id:"s4g", label:"4단계", q:"방통(보일러배관) 공사도 함께 하시나요?", type:"choice", key:"heating", cols:2, opts:["방통 포함","해당 없음"], cond:function(s){return s.workType==="올공사";} },
   { id:"s_est", label:"예상 견적 확인", q:"", type:"estimate" },
-  { id:"s5",  label:"5단계", q:"그러시면 매장 상담 진행이 가능하실까요?", type:"choice", key:"canVisit", cols:2, opts:["가능합니다","어렵습니다"] },
-  { id:"s6",  label:"6단계", q:"예약을 잡아 드릴까요?", type:"choice", key:"wantBook", cols:2, opts:["예약할게요","다음에 할게요"], hint:"캘린더 일정 확인 후 진행 / 당일 예약은 팀장들 확인 후 진행" },
+  { id:"s6",  label:"5단계", q:"예약을 잡아 드릴까요?", type:"choice", key:"wantBook", cols:2, opts:["예약할게요","다음에 할게요"], hint:"캘린더 일정 확인 후 진행 / 당일 예약은 팀장들 확인 후 진행" },
   { id:"s6b", label:"고객 정보", q:"연락처를 알려주세요.", type:"tel", key:"phone", placeholder:"010-0000-0000", cond:function(s){return s.wantBook==="예약할게요";} },
-  { id:"s7",  label:"7단계", q:"혹시 저희 매장 위치가 어디인지 알고 계신지요?", type:"choice", key:"knowLoc", cols:2, opts:["알고 있어요","모르겠어요"], cond:function(s){return s.wantBook==="예약할게요";} },
-  { id:"s8",  label:"8단계", q:"몇 일, 무슨 요일, 몇 시로 예약 잡아드릴까요?", type:"datetime", key:"dt", hint:"날짜와 시간을 선택하면 요일이 자동으로 표시됩니다.", cond:function(s){return s.wantBook==="예약할게요";} },
-  { id:"s8b", label:"8단계", q:"담당 팀장을 배정해 주세요.", type:"choice", key:"manager", cols:3, opts:["김홍내","김사장","이성찬","정길용","배정미정"], cond:function(s){return s.wantBook==="예약할게요";} },
-  { id:"s8c", label:"8단계", q:"고객 지역을 선택해 주세요.", type:"choice", key:"region", cols:3, opts:["안산","안양","군포","산본","과천","화성","의왕","시흥","기타"], cond:function(s){return s.wantBook==="예약할게요";} }
+  { id:"s8",  label:"6단계", q:"몇 일, 무슨 요일, 몇 시로 예약 잡아드릴까요?", type:"datetime", key:"dt", hint:"날짜와 시간을 선택하면 요일이 자동으로 표시됩니다.", cond:function(s){return s.wantBook==="예약할게요";} },
+  { id:"s8b", label:"6단계", q:"담당 팀장을 배정해 주세요.", type:"choice", key:"manager", cols:3, opts:["김홍내","김사장","이성찬","정길용","배정미정"], cond:function(s){return s.wantBook==="예약할게요";} },
+  { id:"s8c", label:"6단계", q:"고객 지역을 선택해 주세요.", type:"choice", key:"region", cols:3, opts:["안산","안양","군포","산본","과천","화성","의왕","시흥","기타"], cond:function(s){return s.wantBook==="예약할게요";} }
 ];
 
 function getActive() {
@@ -777,7 +775,8 @@ function buildAirconSelectHTML(s, sn, total) {
     { cnt:"2대", price:4600000 },
     { cnt:"3대", price:5700000 },
     { cnt:"4대", price:6900000 },
-    { cnt:"5대", price:9000000 }
+    { cnt:"5대", price:9000000 },
+    { cnt:"6대", price:10600000 }
   ];
   var cur = state.airconCnt||"";
 
@@ -803,7 +802,7 @@ function buildAirconSelectHTML(s, sn, total) {
   table += '</tbody></table></div>';
 
   /* 선택 버튼 (가격 괄호 포함) */
-  var btns = '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:8px;">';
+  var btns = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:8px;">';
   acPrices.forEach(function(row){
     var sel = cur===row.cnt;
     btns += '<button onclick="pickAircon(\''+row.cnt+'\')" style="'
@@ -832,7 +831,7 @@ function pickAircon(cnt) {
   updateEstCard();
   updateSummary();
   /* 버튼 UI 갱신 */
-  var acPrices=[{cnt:"2대",price:4600000},{cnt:"3대",price:5700000},{cnt:"4대",price:6900000},{cnt:"5대",price:9000000}];
+  var acPrices=[{cnt:"2대",price:4600000},{cnt:"3대",price:5700000},{cnt:"4대",price:6900000},{cnt:"5대",price:9000000},{cnt:"6대",price:10600000}];
   var btns=document.querySelectorAll("#stepArea button[onclick^='pickAircon']");
   btns.forEach(function(b, i){
     var row=acPrices[i];
@@ -886,6 +885,13 @@ function formatDt(dt) {
 
 function fmt(n) { return n.toLocaleString("ko-KR")+"원"; }
 
+/* 평수 표시: 이미 '평'이 포함돼 있으면(예: 36평B형) 그대로, 숫자만이면 '평' 붙임 */
+function sizeLabel() {
+  var s = (state.size==null?"":String(state.size)).trim();
+  if(!s) return "-";
+  return /평/.test(s) ? s : s+"평";
+}
+
 function calcEst() {
   var sz=parseInt(state.size)||0, big=sz>=33;
   var baseCost=0, baseLabel="";
@@ -894,14 +900,14 @@ function calcEst() {
       ? (big ? PRICES["올공사+샷시(33평이상)"] : PRICES["올공사+샷시(33평미만)"])
       : (big ? PRICES["올공사만(33평이상)"]    : PRICES["올공사만(33평미만)"]);
     baseCost=rate*sz;
-    baseLabel="올공사"+(state.sash==="샷시 진행"?"+샷시":"")+"("+(big?"33평이상":"33평미만")+") "+sz+"평";
+    baseLabel="올공사"+(state.sash==="샷시 진행"?"+샷시":"")+"("+(big?"33평이상":"33평미만")+") "+sizeLabel();
   }
   var expItems=(state.expansion||[]).filter(function(x){return x!=="확장 없음";});
   var expCost=0;
   expItems.forEach(function(e){
     if(EXP_PRICES[e]) expCost += state.sash==="샷시 진행" ? EXP_PRICES[e].y : EXP_PRICES[e].n;
   });
-  var acMap={"2대":4600000,"3대":5700000,"4대":6900000,"5대":9000000};
+  var acMap={"2대":4600000,"3대":5700000,"4대":6900000,"5대":9000000,"6대":10600000};
   var acCost=state.aircon==="시스템에어컨 포함"?(acMap[state.airconCnt]||0):0;
   var htCost=state.heating==="방통 포함"?PRICES["방통(보일러배관)"]*sz:0;
   return {sz:sz,baseCost:baseCost,baseLabel:baseLabel,expCost:expCost,expItems:expItems,acCost:acCost,htCost:htCost,total:baseCost+expCost+acCost+htCost};
@@ -944,7 +950,7 @@ function updateSummary() {
   if(!sb) return;
   var lines=[];
   if(state.place) lines.push('<div class="summary-row"><span>위치</span>'+state.place+(state.address?" / "+state.address:"")+'</div>');
-  if(state.size) lines.push('<div class="summary-row"><span>평수</span>'+state.size+'평</div>');
+  if(state.size) lines.push('<div class="summary-row"><span>평수</span>'+sizeLabel()+'</div>');
   if(state.workStart) lines.push('<div class="summary-row"><span>공사시작</span>'+state.workStart+'</div>');
   if(state.workType) lines.push('<div class="summary-row"><span>공사</span>'+state.workType+(state.sash?" / "+state.sash:"")+'</div>');
   if(state.phone) lines.push('<div class="summary-row"><span>연락처</span>'+state.phone+'</div>');
@@ -978,7 +984,7 @@ function makeKakaoMsg() {
   var inquiryLabel="[" + (state.inquiryType||"문의") + "]";
   var workDetail=(state.workType||"-")+(state.sash?" / "+state.sash:"")+(state.workType==="부분공사"&&state.partialDetail?" / "+state.partialDetail:"");
   return inquiryLabel+" "+managerStr+"\n"
-    +clientLabel+" "+(state.size||"-")+"평\n"
+    +clientLabel+" "+sizeLabel()+"\n"
     +(state.place==="아파트"?"":(state.address||"-")+"\n")
     +"\n"
     +(state.phone||"-")+"\n"
@@ -1073,7 +1079,7 @@ function makeEventTitle() {
   if(expItems.length) workSummary+="/확장("+expItems.join("·")+")";
   if(state.aircon==="시스템에어컨 포함"&&state.airconCnt) workSummary+="/에어컨"+state.airconCnt;
   if(state.heating==="방통 포함") workSummary+="/방통";
-  return managerStr+" "+(state.phone||"")+" "+clientLabel+" "+(state.size||"")+"평 "+workSummary;
+  return managerStr+" "+(state.phone||"")+" "+clientLabel+" "+sizeLabel()+" "+workSummary;
 }
 
 function makeEventBody() {
@@ -1086,7 +1092,7 @@ function makeEventBody() {
   if(expItems.length) workSummary+="/확장("+expItems.join("·")+")";
   if(state.aircon==="시스템에어컨 포함"&&state.airconCnt) workSummary+="/에어컨"+state.airconCnt;
   if(state.heating==="방통 포함") workSummary+="/방통";
-  return "📞 "+(state.phone||"-")+"\n🏠 "+clientLabel+" ("+(state.size||"-")+"평)\n👔 담당: "+managerStr+"\n🔧 공사: "+workSummary+(state.workStart?"\n🗓 공사시작: "+state.workStart:"");
+  return "📞 "+(state.phone||"-")+"\n🏠 "+clientLabel+" ("+sizeLabel()+")\n👔 담당: "+managerStr+"\n🔧 공사: "+workSummary+(state.workStart?"\n🗓 공사시작: "+state.workStart:"");
 }
 
 function makeDateTime(dtStr, addHour) {
@@ -1278,7 +1284,7 @@ function buildStepHTML(s, sn, total) {
     });
     inp += '</div>';
     inp += '<div style="font-size:12px;color:#888;margin-bottom:6px;">목록에 없으면 직접 입력해 주세요.</div>';
-    inp += '<input class="text-input" type="number" id="si" placeholder="직접 입력 (예: 28)" value="'+curSize+'" oninput="state.size=this.value;updateSizeBtn();updateEstCard();" />';
+    inp += '<input class="text-input" type="text" id="si" placeholder="직접 입력 (예: 36평B형, 28)" value="'+curSize+'" oninput="state.size=this.value;updateSizeBtn();updateEstCard();" />';
     var hint = s.hint ? '<div class="step-hint">💡 '+s.hint+'</div>' : "";
     var backBtn = stepIdx>0?'<button class="btn-back" onclick="goBack()">← 이전</button>':"";
     return '<div class="card">'
@@ -1357,7 +1363,7 @@ function renderResult() {
   if(!booked){
     var e2=calcEst();
     var estStr2=state.workType==="부분공사"?"현장확인":(e2.total>0?fmt(e2.total):"-");
-    var noMsg="📋 [예원디자인 상담 기록 - 미예약]\n\n🏠 주소: "+(state.address||"-")+" ("+(state.size||"-")+"평 / "+(state.place||"-")+")\n🔧 공사: "+(state.workType||"-")+(state.workType==="부분공사"&&state.partialDetail?" / "+state.partialDetail:"")+"\n💰 예상: "+estStr2+"\n📌 방문의사: 없음 (추후 재연락 가능)";
+    var noMsg="📋 [예원디자인 상담 기록 - 미예약]\n\n🏠 주소: "+(state.address||"-")+" ("+sizeLabel()+" / "+(state.place||"-")+")\n🔧 공사: "+(state.workType||"-")+(state.workType==="부분공사"&&state.partialDetail?" / "+state.partialDetail:"")+"\n💰 예상: "+estStr2+"\n📌 방문의사: 없음 (추후 재연락 가능)";
     sa.innerHTML='<div class="result-section">'
       +'<div class="done-banner"><div class="ico">📞</div><h2>9단계 - 감사합니다!</h2><p>고객이 예약을 원하지 않으셨습니다.<br>상담 기록을 복사해 보관해 주세요.</p></div>'
       +'<h3>📋 상담 기록 (미예약)</h3>'
