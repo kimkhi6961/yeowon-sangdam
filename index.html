@@ -430,7 +430,7 @@
         </thead>
         <tbody id="priceTableBody"></tbody>
       </table>
-      <div style="font-size:11px;color:#999;margin-top:8px;">💡 금액 클릭하면 수정 가능</div>
+      <div style="font-size:11px;color:#999;margin-top:8px;">💡 금액 클릭 시 이 화면에서만 임시 변경 (새로고침하면 기본 단가로 복귀)</div>
     </div>
 
     <!-- 확장/샷시 금액표 -->
@@ -449,7 +449,7 @@
         </thead>
         <tbody id="expansionTableBody"></tbody>
       </table>
-      <div style="font-size:11px;color:#999;margin-top:8px;">💡 금액 클릭하면 수정 가능</div>
+      <div style="font-size:11px;color:#999;margin-top:8px;">💡 금액 클릭 시 이 화면에서만 임시 변경 (새로고침하면 기본 단가로 복귀)</div>
     </div>
 
     <div class="summary-card" id="summaryCard">
@@ -554,10 +554,10 @@ function restoreDraftIfAny() {
 
 /* ── 기본 단가 데이터 ── */
 var DEFAULT_PRICES = {
-  "올공사만(33평미만)":    1350000,
-  "올공사만(33평이상)":    1300000,
-  "올공사+샷시(33평미만)": 1750000,
-  "올공사+샷시(33평이상)": 1700000,
+  "올공사만(33평미만)":    1450000,
+  "올공사만(33평이상)":    1400000,
+  "올공사+샷시(33평미만)": 1900000,
+  "올공사+샷시(33평이상)": 1850000,
   "방통(보일러배관)":       370000
 };
 
@@ -568,39 +568,33 @@ var DEFAULT_EXP = {
   "주방+터닝도어":     { n: 5500000, y: 3000000 }
 };
 
-/* localStorage에서 단가 불러오기 */
+/* 단가는 항상 코드의 기본값(공식 단가)을 사용한다.
+   → 모든 PC에서 동일한 최신 단가가 표시된다.
+   → 화면에서 클릭 수정은 그 세션에서만 유효하고, 새로고침하면 기본값으로 복귀한다.
+   과거에 브라우저에 저장돼 있던 옛 단가가 있으면 화면을 가리지 않도록 함께 지운다. */
 function loadPrices() {
-  try {
-    var saved = localStorage.getItem("yeowon_prices");
-    return saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(DEFAULT_PRICES));
-  } catch(e) { return JSON.parse(JSON.stringify(DEFAULT_PRICES)); }
+  try { localStorage.removeItem("yeowon_prices"); } catch(e) {}
+  return JSON.parse(JSON.stringify(DEFAULT_PRICES));
 }
 
 function loadExpPrices() {
-  try {
-    var saved = localStorage.getItem("yeowon_exp_prices");
-    return saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(DEFAULT_EXP));
-  } catch(e) { return JSON.parse(JSON.stringify(DEFAULT_EXP)); }
+  try { localStorage.removeItem("yeowon_exp_prices"); } catch(e) {}
+  return JSON.parse(JSON.stringify(DEFAULT_EXP));
 }
 
-function savePrices() {
-  try { localStorage.setItem("yeowon_prices", JSON.stringify(PRICES)); } catch(e) {}
-}
+/* 세션 중 클릭 수정값은 변수에만 반영(브라우저에 영구 저장하지 않음) */
+function savePrices() { /* 영구 저장하지 않음 (코드 기본값이 항상 우선) */ }
 
-function saveExpPrices() {
-  try { localStorage.setItem("yeowon_exp_prices", JSON.stringify(EXP_PRICES)); } catch(e) {}
-}
+function saveExpPrices() { /* 영구 저장하지 않음 (코드 기본값이 항상 우선) */ }
 
 function resetPrices() {
   PRICES = JSON.parse(JSON.stringify(DEFAULT_PRICES));
-  savePrices();
   renderPriceTable();
   updateEstCard();
 }
 
 function resetExpPrices() {
   EXP_PRICES = JSON.parse(JSON.stringify(DEFAULT_EXP));
-  saveExpPrices();
   renderExpTable();
   updateEstCard();
 }
