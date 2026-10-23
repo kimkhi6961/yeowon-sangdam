@@ -378,11 +378,14 @@
       <span style="font-size:22px;">🏠</span>
       <div>
         <h1>예원디자인 전화상담 시스템</h1>
-        <div class="sub">1→2→3→4→견적확인→5→6→(예약시) 성함·연락처→7→8→9</div>
+        <div class="sub">1→2→3→4→견적확인→5(예약)→(예약시) 연락처·날짜·팀장·지역</div>
       </div>
     </div>
   </div>
-  <button class="reset-top" onclick="resetAll()">🔄 새 상담 시작</button>
+  <div style="display:flex;gap:8px;">
+    <button class="reset-top" id="loadDraftBtn" onclick="manualLoadDraft()" style="display:none;">📂 저장된 상담 불러오기</button>
+    <button class="reset-top" onclick="resetAll()">🔄 새 상담 시작</button>
+  </div>
 </div>
 
 <div class="main-layout">
@@ -391,7 +394,10 @@
     <div class="progress-wrap">
       <div class="progress-label">
         <span id="progText">1단계 진행 중</span>
-        <span id="progNum">1 / 1</span>
+        <span style="display:flex;align-items:center;gap:10px;">
+          <span id="draftStatus" style="color:#16a34a;font-size:11px;opacity:0;transition:opacity 0.3s;"></span>
+          <span id="progNum">1 / 1</span>
+        </span>
       </div>
       <div class="progress-bar">
         <div class="progress-fill" id="progFill" style="width:0%"></div>
@@ -424,7 +430,7 @@
         </thead>
         <tbody id="priceTableBody"></tbody>
       </table>
-      <div style="font-size:11px;color:#999;margin-top:8px;">💡 금액 클릭하면 수정 가능</div>
+      <div style="font-size:11px;color:#999;margin-top:8px;">💡 금액 클릭 시 이 화면에서만 임시 변경 (새로고침하면 기본 단가로 복귀)</div>
     </div>
 
     <!-- 확장/샷시 금액표 -->
@@ -443,7 +449,7 @@
         </thead>
         <tbody id="expansionTableBody"></tbody>
       </table>
-      <div style="font-size:11px;color:#999;margin-top:8px;">💡 금액 클릭하면 수정 가능</div>
+      <div style="font-size:11px;color:#999;margin-top:8px;">💡 금액 클릭 시 이 화면에서만 임시 변경 (새로고침하면 기본 단가로 복귀)</div>
     </div>
 
     <div class="summary-card" id="summaryCard">
@@ -457,12 +463,101 @@
 var state = {};
 var stepIdx = 0;
 
+/* ── 임시저장(자동저장) 기능 ── */
+var DRAFT_KEY = "yeowon_draft_v1";
+
+function saveDraft() {
+  try {
+    var draft = { state: state, stepIdx: stepIdx, savedAt: Date.now() };
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    showDraftStatus("💾 임시저장됨");
+    updateLoadBtn();
+  } catch(e) { /* 저장 공간 부족 등은 무시 */ }
+}
+
+function clearDraft() {
+  try { localStorage.removeItem(DRAFT_KEY); } catch(e) {}
+  updateLoadBtn();
+}
+
+function loadDraft() {
+  try {
+    var raw = localStorage.getItem(DRAFT_KEY);
+    if(!raw) return null;
+    return JSON.parse(raw);
+  } catch(e) { return null; }
+}
+
+function showDraftStatus(txt) {
+  var el = document.getElementById("draftStatus");
+  if(!el) return;
+  el.textContent = txt;
+  el.style.opacity = "1";
+  clearTimeout(window._draftTimer);
+  window._draftTimer = setTimeout(function(){ el.style.opacity = "0"; }, 1800);
+}
+
+/* 저장된 상담 유무에 따라 헤더 버튼 표시/숨김 */
+function updateLoadBtn() {
+  var btn = document.getElementById("loadDraftBtn");
+  if(!btn) return;
+  var draft = loadDraft();
+  var has = false;
+  if(draft && draft.state) {
+    has = Object.keys(draft.state).some(function(k){
+      var v = draft.state[k];
+      return v !== "" && v !== null && !(Array.isArray(v) && v.length === 0);
+    });
+  }
+  btn.style.display = has ? "inline-block" : "none";
+}
+
+/* 헤더 버튼으로 직접 불러오기 */
+function manualLoadDraft() {
+  var draft = loadDraft();
+  if(!draft || !draft.state) { alert("저장된 상담 내용이 없습니다."); updateLoadBtn(); return; }
+  var d = new Date(draft.savedAt || Date.now());
+  var timeStr = d.getFullYear()+"."+(d.getMonth()+1)+"."+d.getDate()+" "
+    + String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
+  var who = (draft.state.address || draft.state.inquiryType || "이전 상담");
+  if(confirm("저장된 상담을 불러올까요?\n\n📋 "+who+"\n🕒 "+timeStr+" 저장\n\n현재 입력 중인 내용은 사라집니다.")) {
+    state = draft.state;
+    stepIdx = draft.stepIdx || 0;
+    render();
+  }
+}
+
+/* 저장된 임시 상담이 있으면 복원할지 묻기 (페이지 로드 시) */
+function restoreDraftIfAny() {
+  var draft = loadDraft();
+  if(!draft || !draft.state) return false;
+  var keys = Object.keys(draft.state).filter(function(k){
+    var v = draft.state[k];
+    return v !== "" && v !== null && !(Array.isArray(v) && v.length === 0);
+  });
+  if(keys.length === 0) { clearDraft(); return false; }
+
+  var d = new Date(draft.savedAt || Date.now());
+  var timeStr = d.getFullYear()+"."+(d.getMonth()+1)+"."+d.getDate()+" "
+    + String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
+  var who = (draft.state.address || draft.state.inquiryType || "이전 상담");
+
+  if(confirm("진행 중이던 상담 내용이 있습니다.\n\n📋 "+who+"\n🕒 "+timeStr+" 저장\n\n이어서 진행할까요?\n('취소'를 누르면 새 상담을 시작합니다)")) {
+    state = draft.state;
+    stepIdx = draft.stepIdx || 0;
+    return true;
+  } else {
+    clearDraft();
+    return false;
+  }
+}
+
 /* ── 기본 단가 데이터 ── */
 var DEFAULT_PRICES = {
-  "올공사만(33평미만)":    1350000,
-  "올공사만(33평이상)":    1300000,
-  "올공사+샷시(33평미만)": 1750000,
-  "올공사+샷시(33평이상)": 1700000,
+  "올공사만(33평미만)":    1450000,
+  "올공사만(33평이상)":    1400000,
+  "올공사+샷시(33평미만)": 1900000,
+  "올공사+샷시(33평이상)": 1850000,
   "방통(보일러배관)":       370000
 };
 
@@ -473,39 +568,33 @@ var DEFAULT_EXP = {
   "주방+터닝도어":     { n: 5500000, y: 3000000 }
 };
 
-/* localStorage에서 단가 불러오기 */
+/* 단가는 항상 코드의 기본값(공식 단가)을 사용한다.
+   → 모든 PC에서 동일한 최신 단가가 표시된다.
+   → 화면에서 클릭 수정은 그 세션에서만 유효하고, 새로고침하면 기본값으로 복귀한다.
+   과거에 브라우저에 저장돼 있던 옛 단가가 있으면 화면을 가리지 않도록 함께 지운다. */
 function loadPrices() {
-  try {
-    var saved = localStorage.getItem("yeowon_prices");
-    return saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(DEFAULT_PRICES));
-  } catch(e) { return JSON.parse(JSON.stringify(DEFAULT_PRICES)); }
+  try { localStorage.removeItem("yeowon_prices"); } catch(e) {}
+  return JSON.parse(JSON.stringify(DEFAULT_PRICES));
 }
 
 function loadExpPrices() {
-  try {
-    var saved = localStorage.getItem("yeowon_exp_prices");
-    return saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(DEFAULT_EXP));
-  } catch(e) { return JSON.parse(JSON.stringify(DEFAULT_EXP)); }
+  try { localStorage.removeItem("yeowon_exp_prices"); } catch(e) {}
+  return JSON.parse(JSON.stringify(DEFAULT_EXP));
 }
 
-function savePrices() {
-  try { localStorage.setItem("yeowon_prices", JSON.stringify(PRICES)); } catch(e) {}
-}
+/* 세션 중 클릭 수정값은 변수에만 반영(브라우저에 영구 저장하지 않음) */
+function savePrices() { /* 영구 저장하지 않음 (코드 기본값이 항상 우선) */ }
 
-function saveExpPrices() {
-  try { localStorage.setItem("yeowon_exp_prices", JSON.stringify(EXP_PRICES)); } catch(e) {}
-}
+function saveExpPrices() { /* 영구 저장하지 않음 (코드 기본값이 항상 우선) */ }
 
 function resetPrices() {
   PRICES = JSON.parse(JSON.stringify(DEFAULT_PRICES));
-  savePrices();
   renderPriceTable();
   updateEstCard();
 }
 
 function resetExpPrices() {
   EXP_PRICES = JSON.parse(JSON.stringify(DEFAULT_EXP));
-  saveExpPrices();
   renderExpTable();
   updateEstCard();
 }
@@ -589,13 +678,11 @@ var STEPS = [
   { id:"s4f", label:"4단계", q:"시스템에어컨 몇 대 설치하시나요?\n(단내림 별도)", type:"airconselect", key:"airconCnt", cond:function(s){return s.workType==="올공사"&&s.aircon==="시스템에어컨 포함";} },
   { id:"s4g", label:"4단계", q:"방통(보일러배관) 공사도 함께 하시나요?", type:"choice", key:"heating", cols:2, opts:["방통 포함","해당 없음"], cond:function(s){return s.workType==="올공사";} },
   { id:"s_est", label:"예상 견적 확인", q:"", type:"estimate" },
-  { id:"s5",  label:"5단계", q:"그러시면 매장 상담 진행이 가능하실까요?", type:"choice", key:"canVisit", cols:2, opts:["가능합니다","어렵습니다"] },
-  { id:"s6",  label:"6단계", q:"예약을 잡아 드릴까요?", type:"choice", key:"wantBook", cols:2, opts:["예약할게요","다음에 할게요"], hint:"캘린더 일정 확인 후 진행 / 당일 예약은 팀장들 확인 후 진행" },
+  { id:"s6",  label:"5단계", q:"예약을 잡아 드릴까요?", type:"choice", key:"wantBook", cols:2, opts:["예약할게요","다음에 할게요"], hint:"캘린더 일정 확인 후 진행 / 당일 예약은 팀장들 확인 후 진행" },
   { id:"s6b", label:"고객 정보", q:"연락처를 알려주세요.", type:"tel", key:"phone", placeholder:"010-0000-0000", cond:function(s){return s.wantBook==="예약할게요";} },
-  { id:"s7",  label:"7단계", q:"혹시 저희 매장 위치가 어디인지 알고 계신지요?", type:"choice", key:"knowLoc", cols:2, opts:["알고 있어요","모르겠어요"], cond:function(s){return s.wantBook==="예약할게요";} },
-  { id:"s8",  label:"8단계", q:"몇 일, 무슨 요일, 몇 시로 예약 잡아드릴까요?", type:"datetime", key:"dt", hint:"날짜와 시간을 선택하면 요일이 자동으로 표시됩니다.", cond:function(s){return s.wantBook==="예약할게요";} },
-  { id:"s8b", label:"8단계", q:"담당 팀장을 배정해 주세요.", type:"choice", key:"manager", cols:3, opts:["김홍내","김사장","이성찬","정길용","배정미정"], cond:function(s){return s.wantBook==="예약할게요";} },
-  { id:"s8c", label:"8단계", q:"고객 지역을 선택해 주세요.", type:"choice", key:"region", cols:3, opts:["안산","안양","군포","산본","과천","화성","의왕","시흥","기타"], cond:function(s){return s.wantBook==="예약할게요";} }
+  { id:"s8",  label:"6단계", q:"몇 일, 무슨 요일, 몇 시로 예약 잡아드릴까요?", type:"datetime", key:"dt", hint:"날짜와 시간을 선택하면 요일이 자동으로 표시됩니다.", cond:function(s){return s.wantBook==="예약할게요";} },
+  { id:"s8b", label:"6단계", q:"담당 팀장을 배정해 주세요.", type:"choice", key:"manager", cols:3, opts:["김홍내","김사장","이성찬","정길용","배정미정"], cond:function(s){return s.wantBook==="예약할게요";} },
+  { id:"s8c", label:"6단계", q:"고객 지역을 선택해 주세요.", type:"choice", key:"region", cols:3, opts:["안산","안양","군포","산본","과천","화성","의왕","시흥","기타"], cond:function(s){return s.wantBook==="예약할게요";} }
 ];
 
 function getActive() {
@@ -682,7 +769,8 @@ function buildAirconSelectHTML(s, sn, total) {
     { cnt:"2대", price:4600000 },
     { cnt:"3대", price:5700000 },
     { cnt:"4대", price:6900000 },
-    { cnt:"5대", price:9000000 }
+    { cnt:"5대", price:9000000 },
+    { cnt:"6대", price:10600000 }
   ];
   var cur = state.airconCnt||"";
 
@@ -708,7 +796,7 @@ function buildAirconSelectHTML(s, sn, total) {
   table += '</tbody></table></div>';
 
   /* 선택 버튼 (가격 괄호 포함) */
-  var btns = '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:8px;">';
+  var btns = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:8px;">';
   acPrices.forEach(function(row){
     var sel = cur===row.cnt;
     btns += '<button onclick="pickAircon(\''+row.cnt+'\')" style="'
@@ -737,7 +825,7 @@ function pickAircon(cnt) {
   updateEstCard();
   updateSummary();
   /* 버튼 UI 갱신 */
-  var acPrices=[{cnt:"2대",price:4600000},{cnt:"3대",price:5700000},{cnt:"4대",price:6900000},{cnt:"5대",price:9000000}];
+  var acPrices=[{cnt:"2대",price:4600000},{cnt:"3대",price:5700000},{cnt:"4대",price:6900000},{cnt:"5대",price:9000000},{cnt:"6대",price:10600000}];
   var btns=document.querySelectorAll("#stepArea button[onclick^='pickAircon']");
   btns.forEach(function(b, i){
     var row=acPrices[i];
@@ -791,6 +879,13 @@ function formatDt(dt) {
 
 function fmt(n) { return n.toLocaleString("ko-KR")+"원"; }
 
+/* 평수 표시: 이미 '평'이 포함돼 있으면(예: 36평B형) 그대로, 숫자만이면 '평' 붙임 */
+function sizeLabel() {
+  var s = (state.size==null?"":String(state.size)).trim();
+  if(!s) return "-";
+  return /평/.test(s) ? s : s+"평";
+}
+
 function calcEst() {
   var sz=parseInt(state.size)||0, big=sz>=33;
   var baseCost=0, baseLabel="";
@@ -799,14 +894,14 @@ function calcEst() {
       ? (big ? PRICES["올공사+샷시(33평이상)"] : PRICES["올공사+샷시(33평미만)"])
       : (big ? PRICES["올공사만(33평이상)"]    : PRICES["올공사만(33평미만)"]);
     baseCost=rate*sz;
-    baseLabel="올공사"+(state.sash==="샷시 진행"?"+샷시":"")+"("+(big?"33평이상":"33평미만")+") "+sz+"평";
+    baseLabel="올공사"+(state.sash==="샷시 진행"?"+샷시":"")+"("+(big?"33평이상":"33평미만")+") "+sizeLabel();
   }
   var expItems=(state.expansion||[]).filter(function(x){return x!=="확장 없음";});
   var expCost=0;
   expItems.forEach(function(e){
     if(EXP_PRICES[e]) expCost += state.sash==="샷시 진행" ? EXP_PRICES[e].y : EXP_PRICES[e].n;
   });
-  var acMap={"2대":4600000,"3대":5700000,"4대":6900000,"5대":9000000};
+  var acMap={"2대":4600000,"3대":5700000,"4대":6900000,"5대":9000000,"6대":10600000};
   var acCost=state.aircon==="시스템에어컨 포함"?(acMap[state.airconCnt]||0):0;
   var htCost=state.heating==="방통 포함"?PRICES["방통(보일러배관)"]*sz:0;
   return {sz:sz,baseCost:baseCost,baseLabel:baseLabel,expCost:expCost,expItems:expItems,acCost:acCost,htCost:htCost,total:baseCost+expCost+acCost+htCost};
@@ -849,7 +944,7 @@ function updateSummary() {
   if(!sb) return;
   var lines=[];
   if(state.place) lines.push('<div class="summary-row"><span>위치</span>'+state.place+(state.address?" / "+state.address:"")+'</div>');
-  if(state.size) lines.push('<div class="summary-row"><span>평수</span>'+state.size+'평</div>');
+  if(state.size) lines.push('<div class="summary-row"><span>평수</span>'+sizeLabel()+'</div>');
   if(state.workStart) lines.push('<div class="summary-row"><span>공사시작</span>'+state.workStart+'</div>');
   if(state.workType) lines.push('<div class="summary-row"><span>공사</span>'+state.workType+(state.sash?" / "+state.sash:"")+'</div>');
   if(state.phone) lines.push('<div class="summary-row"><span>연락처</span>'+state.phone+'</div>');
@@ -857,6 +952,7 @@ function updateSummary() {
   if(state.region) lines.push('<div class="summary-row"><span>지역</span>'+state.region+'</div>');
   if(state.dt) lines.push('<div class="summary-row"><span>예약</span>'+formatDt(state.dt)+'</div>');
   sb.innerHTML = lines.length ? lines.join("") : '<div style="font-size:13px;color:#999;">아직 입력된 정보가 없습니다.</div>';
+  saveDraft();
 }
 
 function updateProgress() {
@@ -882,7 +978,7 @@ function makeKakaoMsg() {
   var inquiryLabel="[" + (state.inquiryType||"문의") + "]";
   var workDetail=(state.workType||"-")+(state.sash?" / "+state.sash:"")+(state.workType==="부분공사"&&state.partialDetail?" / "+state.partialDetail:"");
   return inquiryLabel+" "+managerStr+"\n"
-    +clientLabel+" "+(state.size||"-")+"평\n"
+    +clientLabel+" "+sizeLabel()+"\n"
     +(state.place==="아파트"?"":(state.address||"-")+"\n")
     +"\n"
     +(state.phone||"-")+"\n"
@@ -972,11 +1068,12 @@ function makeEventTitle() {
   var managerStr=state.manager==="배정미정"?"배정미정":(state.manager||"-");
   var expItems=(state.expansion||[]).filter(function(x){return x!=="확장 없음";});
   var workSummary=state.workType||"";
+  if(state.workType==="부분공사"&&state.partialDetail) workSummary+="("+state.partialDetail+")";
   if(state.sash==="샷시 진행") workSummary+="/샷시";
   if(expItems.length) workSummary+="/확장("+expItems.join("·")+")";
   if(state.aircon==="시스템에어컨 포함"&&state.airconCnt) workSummary+="/에어컨"+state.airconCnt;
   if(state.heating==="방통 포함") workSummary+="/방통";
-  return managerStr+" "+(state.phone||"")+" "+clientLabel+" "+(state.size||"")+"평 "+workSummary;
+  return managerStr+" "+(state.phone||"")+" "+clientLabel+" "+sizeLabel()+" "+workSummary;
 }
 
 function makeEventBody() {
@@ -984,11 +1081,12 @@ function makeEventBody() {
   var managerStr=state.manager==="배정미정"?"배정미정":(state.manager||"-");
   var expItems=(state.expansion||[]).filter(function(x){return x!=="확장 없음";});
   var workSummary=state.workType||"";
+  if(state.workType==="부분공사"&&state.partialDetail) workSummary+="("+state.partialDetail+")";
   if(state.sash==="샷시 진행") workSummary+="/샷시";
   if(expItems.length) workSummary+="/확장("+expItems.join("·")+")";
   if(state.aircon==="시스템에어컨 포함"&&state.airconCnt) workSummary+="/에어컨"+state.airconCnt;
   if(state.heating==="방통 포함") workSummary+="/방통";
-  return "📞 "+(state.phone||"-")+"\n🏠 "+clientLabel+" ("+(state.size||"-")+"평)\n👔 담당: "+managerStr+"\n🔧 공사: "+workSummary+(state.workStart?"\n🗓 공사시작: "+state.workStart:"");
+  return "📞 "+(state.phone||"-")+"\n🏠 "+clientLabel+" ("+sizeLabel()+")\n👔 담당: "+managerStr+"\n🔧 공사: "+workSummary+(state.workStart?"\n🗓 공사시작: "+state.workStart:"");
 }
 
 function makeDateTime(dtStr, addHour) {
@@ -1118,6 +1216,7 @@ function openCalendarUrl() {
   var managerStr=state.manager==="배정미정"?"배정미정":(state.manager||"-");
   var expItems=(state.expansion||[]).filter(function(x){return x!=="확장 없음";});
   var workSummary=state.workType||"";
+  if(state.workType==="부분공사"&&state.partialDetail) workSummary+="("+state.partialDetail+")";
   if(state.sash==="샷시 진행") workSummary+="/샷시";
   if(expItems.length) workSummary+="/확장("+expItems.join("·")+")";
   if(state.aircon==="시스템에어컨 포함"&&state.airconCnt) workSummary+="/에어컨"+state.airconCnt;
@@ -1179,7 +1278,7 @@ function buildStepHTML(s, sn, total) {
     });
     inp += '</div>';
     inp += '<div style="font-size:12px;color:#888;margin-bottom:6px;">목록에 없으면 직접 입력해 주세요.</div>';
-    inp += '<input class="text-input" type="number" id="si" placeholder="직접 입력 (예: 28)" value="'+curSize+'" oninput="state.size=this.value;updateSizeBtn();updateEstCard();" />';
+    inp += '<input class="text-input" type="text" id="si" placeholder="직접 입력 (예: 36평B형, 28)" value="'+curSize+'" oninput="state.size=this.value;updateSizeBtn();updateEstCard();" />';
     var hint = s.hint ? '<div class="step-hint">💡 '+s.hint+'</div>' : "";
     var backBtn = stepIdx>0?'<button class="btn-back" onclick="goBack()">← 이전</button>':"";
     return '<div class="card">'
@@ -1258,7 +1357,7 @@ function renderResult() {
   if(!booked){
     var e2=calcEst();
     var estStr2=state.workType==="부분공사"?"현장확인":(e2.total>0?fmt(e2.total):"-");
-    var noMsg="📋 [예원디자인 상담 기록 - 미예약]\n\n🏠 주소: "+(state.address||"-")+" ("+(state.size||"-")+"평 / "+(state.place||"-")+")\n🔧 공사: "+(state.workType||"-")+(state.workType==="부분공사"&&state.partialDetail?" / "+state.partialDetail:"")+"\n💰 예상: "+estStr2+"\n📌 방문의사: 없음 (추후 재연락 가능)";
+    var noMsg="📋 [예원디자인 상담 기록 - 미예약]\n\n🏠 주소: "+(state.address||"-")+" ("+sizeLabel()+" / "+(state.place||"-")+")\n🔧 공사: "+(state.workType||"-")+(state.workType==="부분공사"&&state.partialDetail?" / "+state.partialDetail:"")+"\n💰 예상: "+estStr2+"\n📌 방문의사: 없음 (추후 재연락 가능)";
     sa.innerHTML='<div class="result-section">'
       +'<div class="done-banner"><div class="ico">📞</div><h2>9단계 - 감사합니다!</h2><p>고객이 예약을 원하지 않으셨습니다.<br>상담 기록을 복사해 보관해 주세요.</p></div>'
       +'<h3>📋 상담 기록 (미예약)</h3>'
@@ -1610,7 +1709,15 @@ function changeManager(m){
   renderResult();
 }
 
-function resetAll(){ state={}; stepIdx=0; render(); }
+function resetAll(){
+  /* 입력 중인 내용이 있으면 초기화 전 확인 */
+  var hasData = Object.keys(state).some(function(k){
+    var v = state[k];
+    return v !== "" && v !== null && !(Array.isArray(v) && v.length === 0);
+  });
+  if(hasData && !confirm("새 상담을 시작하면 현재 입력 내용이 모두 지워집니다.\n계속할까요?")) return;
+  state={}; stepIdx=0; clearDraft(); render();
+}
 
 function render(){
   var steps=getActive();
@@ -1622,10 +1729,12 @@ function render(){
   if(!sa) return;
   if(stepIdx>=steps.length){
     renderResult();
+    saveDraft();
   } else {
     sa.innerHTML=buildStepHTML(steps[stepIdx],stepIdx+1,steps.length);
     var si=document.getElementById("si");
     if(si){ si.focus(); si.addEventListener("keydown",function(e){if(e.key==="Enter")goNext();}); }
+    saveDraft();
   }
 }
 
@@ -1636,6 +1745,9 @@ var _pc=document.getElementById("priceTableCard");
 var _ec=document.getElementById("expansionTableCard");
 if(_pc) _pc.style.display="none";
 if(_ec) _ec.style.display="none";
+/* 진행 중이던 상담이 있으면 복원 여부 확인 */
+restoreDraftIfAny();
+updateLoadBtn();
 render();
 </script>
 </body>
