@@ -1360,6 +1360,7 @@ function renderResult() {
     var noMsg="📋 [예원디자인 상담 기록 - 미예약]\n\n🏠 주소: "+(state.address||"-")+" ("+sizeLabel()+" / "+(state.place||"-")+")\n🔧 공사: "+(state.workType||"-")+(state.workType==="부분공사"&&state.partialDetail?" / "+state.partialDetail:"")+"\n💰 예상: "+estStr2+"\n📌 방문의사: 없음 (추후 재연락 가능)";
     sa.innerHTML='<div class="result-section">'
       +'<div class="done-banner"><div class="ico">📞</div><h2>9단계 - 감사합니다!</h2><p>고객이 예약을 원하지 않으셨습니다.<br>상담 기록을 복사해 보관해 주세요.</p></div>'
+      +'<button class="action-btn outline" onclick="goBack()" style="margin-bottom:12px;">← 이전 단계로 돌아가 수정</button>'
       +'<h3>📋 상담 기록 (미예약)</h3>'
       +'<div class="msg-box" id="noMsg">'+noMsg+'</div>'
       +'<button class="action-btn outline" id="cpB1" onclick="copyText(\'noMsg\',\'cpB1\')">📋 상담기록 복사</button>'
@@ -1390,6 +1391,7 @@ function renderResult() {
 
   sa.innerHTML='<div class="result-section">'
     +'<div class="done-banner"><div class="ico">✅</div><h2>예약 완료!</h2><p>'+clientLabel+' / '+dtStr+'<br>담당: '+managerStr+(state.region?'<br>지역: '+state.region:'')+'</p></div>'
+    +'<button class="action-btn outline" onclick="goBack()" style="margin-bottom:12px;">← 이전 단계로 돌아가 수정</button>'
     +locAlert
     +managerEdit
 
